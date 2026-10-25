@@ -2,7 +2,7 @@
 <html lang="ru">
 <head>
 <meta charset="utf-8">
-<title>Drone vs AA - Final Fix</title>
+<title>Drone vs AA - V8</title>
 <style>
 body{margin:0;overflow:hidden;background:#000;font-family:'Segoe UI',Tahoma,Verdana,sans-serif;user-select:none;cursor:crosshair}
 canvas{display:block}
@@ -194,10 +194,9 @@ function createDrone(team,x,y,z){
   document.getElementById('hud').appendChild(el);
   
   const targetX = team===TEAM_BLUE ? 2000 : -2000;
-  // Правильный угол поворота для полета вперед (нос смотрит на -Z)
   const startYaw = Math.atan2(-(targetX - x), 0); 
   
-  const ent={type:'drone',team,mesh:group,pos:group.position,yaw:startYaw,hp:100,maxHp:100,alive:true,speed:100,velocity:new THREE.Vector3(),marker:el,aiTimer:0,targetX};
+  const ent={type:'drone',team,mesh:group,pos:group.position,yaw:startYaw,hp:100,maxHp:100,alive:true,speed:100,velocity:new THREE.Vector3(),marker:el,aiTimer:0,targetX,targetZ:0};
   entities.push(ent);return ent;
 }
 
@@ -207,7 +206,7 @@ function createBase(team,x,z){
   const b=new THREE.Mesh(new THREE.BoxGeometry(150,60,150),new THREE.MeshStandardMaterial({color:0x444444}));b.position.y=30;b.castShadow=true;b.receiveShadow=true;group.add(b);
   const roof=new THREE.Mesh(new THREE.ConeGeometry(120,40,4),new THREE.MeshStandardMaterial({color:color}));roof.position.y=80;roof.rotation.y=Math.PI/4;roof.castShadow=true;group.add(roof);
   scene.add(group);
-  return {mesh:group, hp:1000, maxHp:1000};
+  return {mesh:group, hp:1000, maxHp:1000, pos:group.position};
 }
 
 function spawnWorld(){
@@ -280,12 +279,11 @@ function startGame(mode){
   if(mode==='drone'){
     playerEntity=createDrone(TEAM_BLUE, -1500, 400, 0);
     playerEntity.isPlayer=true;
-    // Убираем маркер у игрока
     if(playerEntity.marker) playerEntity.marker.style.display='none';
   }else{
     playerEntity=createAA(TEAM_BLUE, -1500, 0);
     playerEntity.mesh.visible=false;
-    camYaw = 0; camPitch = -0.4; // Смотрим вниз
+    camYaw = 0; camPitch = -0.4; 
     if(playerEntity.marker) playerEntity.marker.style.display='none';
   }
   deaths=0; kills=0; isDead=false; document.getElementById('respawn-screen').style.display='none';
@@ -386,6 +384,7 @@ function updatePlayer(dt){
     const minY=groundY(p.pos.x,p.pos.z)+30;p.pos.y=Math.max(minY,p.pos.y);
     
     p.mesh.position.copy(p.pos);
+    p.mesh.rotation.order = 'YXZ'; // ФИКС ЗАНОСА
     p.mesh.rotation.y=p.yaw;
     
     const targetPitch = (mv>0? 0.3 : (mv<0? -0.3 : 0)) + (up*0.1);
@@ -434,31 +433,27 @@ function updateEntities(dt){
     if(!e.alive)return;
     
     if(e.type==='drone' && !e.isPlayer){
-      const targetX = e.team===TEAM_BLUE ? 2000 : -2000;
-      const targetZ = 0;
+      // ИИ дронов летит бомбить базу
+      const targetBase = e.team===TEAM_BLUE ? redBase : blueBase;
+      const distToBase = e.pos.distanceTo(targetBase.pos);
       
-      const dx=targetX-e.pos.x, dz=targetZ-e.pos.z;
-      const distToBase=Math.sqrt(dx*dx+dz*dz);
-      
-      if(distToBase<200){
-        if(e.team===TEAM_RED){
-          blueBase.hp -= 50;
-          createExplosion(new THREE.Vector3(blueBase.mesh.position.x, blueBase.mesh.position.y+60, blueBase.mesh.position.z));
-        }else{
-          redBase.hp -= 50;
-          createExplosion(new THREE.Vector3(redBase.mesh.position.x, redBase.mesh.position.y+60, redBase.mesh.position.z));
-        }
+      if(distToBase < 250){
+        // Дрон сбрасывает бомбу и уничтожается (камикадзе)
+        targetBase.hp -= 150; // Большой урон базе
+        createExplosion(targetBase.pos.clone().add(new THREE.Vector3(0,60,0)));
         e.alive=false;e.mesh.visible=false;if(e.marker)e.marker.style.display='none';
       } else {
-        // Дрон летит к цели
-        e.yaw = Math.atan2(-(targetX - e.pos.x), -(targetZ - e.pos.z));
+        // Летим к базе
+        const dx = targetBase.pos.x - e.pos.x;
+        const dz = targetBase.pos.z - e.pos.z;
+        e.yaw = Math.atan2(-dx, -dz);
+        
         const targetVel=new THREE.Vector3(-Math.sin(e.yaw)*e.speed, 0, -Math.cos(e.yaw)*e.speed);
         e.velocity.lerp(targetVel, dt*2);
         e.pos.add(e.velocity.clone().multiplyScalar(dt));
         
-        // Держим высоту 250м над землей
-        const baseGround = groundY(e.pos.x,e.pos.z);
-        e.pos.y = THREE.MathUtils.lerp(e.pos.y, baseGround + 250, dt*2);
+        // Держим высоту 250м
+        e.pos.y = THREE.MathUtils.lerp(e.pos.y, groundY(e.pos.x,e.pos.z) + 250, dt*2);
         
         e.mesh.position.copy(e.pos);
         e.mesh.rotation.y=e.yaw;
@@ -504,7 +499,6 @@ function updateProjectiles(dt){
         const r=e.type==='drone'?40:30;
         if(p.mesh.position.distanceTo(e.pos)<r){
           applyDamage(e,p.dmg);hit=true;createExplosion(p.mesh.position);
-          // Вспышка прицела при попадании
           if(e.team!==playerEntity.team){
             const hm=document.getElementById('hit-marker');
             hm.style.opacity=1;
