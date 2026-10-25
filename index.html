@@ -2,7 +2,7 @@
 <html lang="ru">
 <head>
 <meta charset="utf-8">
-<title>SKYFIRE - Final Fix</title>
+<title>SKYFIRE - Kamikaze Fix</title>
 <style>
 body{margin:0;overflow:hidden;background:#000;font-family:'Segoe UI',Tahoma,sans-serif;user-select:none;cursor:crosshair}
 canvas{display:block}
@@ -394,8 +394,10 @@ function updatePlayer(dt){
       
       p.mesh.position.copy(p.pos); p.mesh.rotation.order='YXZ'; p.mesh.rotation.y=p.yaw; p.mesh.rotation.x=p.pitch; p.mesh.rotation.z=p.roll;
     } else {
+      // FPV: W - держать высоту. Если отпустить - падаем.
       let up=(keys['KeyW']||keys['Space'])?1:0;
-      let targetYVel=up?30:-60; p.velocity.y=THREE.MathUtils.lerp(p.velocity.y,targetYVel,dt*2);
+      let targetYVel=up?30:-60; 
+      p.velocity.y=THREE.MathUtils.lerp(p.velocity.y,targetYVel,dt*2);
       
       if(mouse.isLocked){camYaw-=mouse.movementX*0.002;camPitch-=mouse.movementY*0.002;camPitch=Math.max(-1.0,Math.min(1.0,camPitch));mouse.movementX=0;mouse.movementY=0;}
       p.yaw=camYaw; p.pitch=-camPitch;
@@ -404,8 +406,12 @@ function updatePlayer(dt){
       p.velocity.x=fwd.x*forwardSpeed; p.velocity.z=fwd.z*forwardSpeed;
       p.pos.add(p.velocity.clone().multiplyScalar(dt));
       
-      const minY=groundY(p.pos.x,p.pos.z)+5; 
-      if(p.pos.y<minY){playerDie();} // Мгновенная смерть при касании земли
+      // ПРОВЕРКА НА ВЗРЫВ ПРИ КАСАНИИ ЗЕМЛИ
+      const minY = groundY(p.pos.x, p.pos.z) + 2;
+      if(p.pos.y < minY) {
+        playerDie(); // Разбился
+        return;
+      }
       
       p.mesh.position.copy(p.pos); p.mesh.rotation.order='YXZ'; p.mesh.rotation.y=p.yaw; p.mesh.rotation.x=p.pitch; p.mesh.rotation.z=0;
     }
