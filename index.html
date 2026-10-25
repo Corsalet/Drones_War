@@ -2,7 +2,7 @@
 <html lang="ru">
 <head>
 <meta charset="utf-8">
-<title>Drone vs AA - V8</title>
+<title>Drone vs AA - V9</title>
 <style>
 body{margin:0;overflow:hidden;background:#000;font-family:'Segoe UI',Tahoma,Verdana,sans-serif;user-select:none;cursor:crosshair}
 canvas{display:block}
@@ -14,6 +14,10 @@ canvas{display:block}
 #hp-text{position:absolute;top:50%;left:50%;transform:translate(-50%,-50%);color:#fff;font-weight:bold;font-size:14px;text-shadow:1px 1px 2px #000}
 #minimap{position:absolute;bottom:30px;right:30px;width:220px;height:220px;border:2px solid rgba(255,255,255,0.8);background:rgba(0,0,0,0.6);border-radius:50%;box-shadow:0 0 15px rgba(0,0,0,0.7)}
 #score{position:absolute;top:20px;right:30px;color:#fff;font-size:20px;font-weight:bold;text-shadow:1px 1px 3px #000;text-align:right}
+#base-hp-container{position:absolute;top:20px;left:50%;transform:translateX(-50%);width:400px;display:flex;justify-content:space-between;font-size:12px;font-weight:bold;color:#fff;text-shadow:1px 1px 2px #000}
+.base-hp-bar{width:45%;height:12px;border:1px solid #fff;background:rgba(0,0,0,0.5);margin-top:2px;border-radius:2px;overflow:hidden}
+#base-hp-blue{height:100%;width:100%;background:#00aaff;transition:width .2s}
+#base-hp-red{height:100%;width:100%;background:#ff0000;transition:width .2s;float:right}
 #cross{position:absolute;top:50%;left:50%;transform:translate(-50%,-50%);width:40px;height:40px;border:2px solid rgba(255,255,255,0.8);border-radius:50%;display:flex;justify-content:center;align-items:center;box-shadow:0 0 5px rgba(0,0,0,0.5);display:none}
 #cross::before,#cross::after{content:'';position:absolute;background:#fff}
 #cross::before{width:2px;height:12px;top:-8px;box-shadow:0 48px 0 #fff}
@@ -74,6 +78,10 @@ canvas{display:block}
 <div id="hud">
 <button id="menu-btn" onclick="location.reload()">В МЕНЮ</button>
 <div id="score">Целей уничтожено: 0 / 10</div>
+<div id="base-hp-container">
+    <div style="text-align:left">ВАША БАЗА<div class="base-hp-bar"><div id="base-hp-blue"></div></div></div>
+    <div style="text-align:right">БАЗА ВРАГА<div class="base-hp-bar"><div id="base-hp-red"></div></div></div>
+</div>
 <div id="hp-bar"><div id="hp-fill"></div><div id="hp-text">100 / 100 HP</div></div>
 <canvas id="minimap" width="220" height="220"></canvas>
 <div id="cross"></div>
@@ -350,7 +358,7 @@ function animate(){
     }
   }
   
-  if(kills>=10 && gameMode!=='none'){
+  if((kills>=10 || redBase.hp<=0) && gameMode!=='none'){
     document.getElementById('win-screen').style.display='flex';
     document.getElementById('hud').style.display='none';
     gameMode='none';
@@ -384,7 +392,7 @@ function updatePlayer(dt){
     const minY=groundY(p.pos.x,p.pos.z)+30;p.pos.y=Math.max(minY,p.pos.y);
     
     p.mesh.position.copy(p.pos);
-    p.mesh.rotation.order = 'YXZ'; // ФИКС ЗАНОСА
+    p.mesh.rotation.order = 'YXZ';
     p.mesh.rotation.y=p.yaw;
     
     const targetPitch = (mv>0? 0.3 : (mv<0? -0.3 : 0)) + (up*0.1);
@@ -433,26 +441,22 @@ function updateEntities(dt){
     if(!e.alive)return;
     
     if(e.type==='drone' && !e.isPlayer){
-      // ИИ дронов летит бомбить базу
       const targetBase = e.team===TEAM_BLUE ? redBase : blueBase;
-      const distToBase = e.pos.distanceTo(targetBase.pos);
+      // Считаем дистанцию по горизонтали, чтобы высота не мешала
+      const dx = targetBase.pos.x - e.pos.x;
+      const dz = targetBase.pos.z - e.pos.z;
+      const distToBase = Math.sqrt(dx*dx + dz*dz);
       
-      if(distToBase < 250){
-        // Дрон сбрасывает бомбу и уничтожается (камикадзе)
-        targetBase.hp -= 150; // Большой урон базе
+      if(distToBase < 300){
+        // Дрон сбрасывает бомбу и уничтожается
+        targetBase.hp -= 150; 
         createExplosion(targetBase.pos.clone().add(new THREE.Vector3(0,60,0)));
         e.alive=false;e.mesh.visible=false;if(e.marker)e.marker.style.display='none';
       } else {
-        // Летим к базе
-        const dx = targetBase.pos.x - e.pos.x;
-        const dz = targetBase.pos.z - e.pos.z;
         e.yaw = Math.atan2(-dx, -dz);
-        
         const targetVel=new THREE.Vector3(-Math.sin(e.yaw)*e.speed, 0, -Math.cos(e.yaw)*e.speed);
         e.velocity.lerp(targetVel, dt*2);
         e.pos.add(e.velocity.clone().multiplyScalar(dt));
-        
-        // Держим высоту 250м
         e.pos.y = THREE.MathUtils.lerp(e.pos.y, groundY(e.pos.x,e.pos.z) + 250, dt*2);
         
         e.mesh.position.copy(e.pos);
@@ -557,6 +561,10 @@ function updateHUD(){
   document.getElementById('hp-fill').style.width=pct+'%';
   document.getElementById('hp-fill').style.background=pct>50?'#00ff00':pct>25?'#ffaa00':'#ff0000';
   document.getElementById('hp-text').innerText=Math.ceil(Math.max(0,playerEntity.hp))+' / 100 HP';
+  
+  // Обновляем HP баз
+  document.getElementById('base-hp-blue').style.width = Math.max(0, blueBase.hp/blueBase.maxHp*100) + '%';
+  document.getElementById('base-hp-red').style.width = Math.max(0, redBase.hp/redBase.maxHp*100) + '%';
   
   const v=new THREE.Vector3();
   entities.forEach(e=>{
