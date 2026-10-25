@@ -2,7 +2,7 @@
 <html lang="ru">
 <head>
 <meta charset="utf-8">
-<title>SKYFIRE - Kamikaze Fix</title>
+<title>SKYFIRE - Final Fix (V2)</title>
 <style>
 body{margin:0;overflow:hidden;background:#000;font-family:'Segoe UI',Tahoma,sans-serif;user-select:none;cursor:crosshair}
 canvas{display:block}
@@ -409,7 +409,8 @@ function updatePlayer(dt){
       // ПРОВЕРКА НА ВЗРЫВ ПРИ КАСАНИИ ЗЕМЛИ
       const minY = groundY(p.pos.x, p.pos.z) + 2;
       if(p.pos.y < minY) {
-        playerDie(); // Разбился
+        createExplosion(p.pos); // Сначала взрыв
+        playerDie(); // Потом смерть
         return;
       }
       
