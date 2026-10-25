@@ -2,33 +2,30 @@
 <html lang="ru">
 <head>
 <meta charset="utf-8">
-<title>Drone vs AA - Alpha</title>
+<title>Drone vs AA - V3</title>
 <style>
-body{margin:0;overflow:hidden;background:#000;font-family:'Segoe UI',Tahoma,Geneva,Verdana,sans-serif;user-select:none;cursor:crosshair}
+body{margin:0;overflow:hidden;background:#000;font-family:'Segoe UI',Tahoma,Verdana,sans-serif;user-select:none;cursor:crosshair}
 canvas{display:block}
 #hud{position:fixed;top:0;left:0;width:100%;height:100%;pointer-events:none;display:none}
+#menu-btn{position:absolute;top:20px;left:20px;background:rgba(0,0,0,0.7);border:2px solid #00aaff;color:#fff;padding:10px 20px;font-size:16px;cursor:pointer;border-radius:8px;pointer-events:auto;transition:0.2s}
+#menu-btn:hover{background:#00aaff}
 #hp-bar{position:absolute;bottom:30px;left:30px;width:300px;height:24px;border:2px solid rgba(255,255,255,0.8);background:rgba(0,0,0,0.5);border-radius:12px;overflow:hidden;box-shadow:0 0 10px rgba(0,0,0,0.5)}
 #hp-fill{height:100%;width:100%;background:linear-gradient(90deg,#00ff00,#88ff00);transition:width .2s}
 #hp-text{position:absolute;top:50%;left:50%;transform:translate(-50%,-50%);color:#fff;font-weight:bold;font-size:14px;text-shadow:1px 1px 2px #000}
 #minimap{position:absolute;bottom:30px;right:30px;width:220px;height:220px;border:2px solid rgba(255,255,255,0.8);background:rgba(0,0,0,0.6);border-radius:50%;box-shadow:0 0 15px rgba(0,0,0,0.7)}
+#score{position:absolute;top:20px;right:30px;color:#fff;font-size:20px;font-weight:bold;text-shadow:1px 1px 3px #000;text-align:right}
 #cross{position:absolute;top:50%;left:50%;transform:translate(-50%,-50%);width:40px;height:40px;border:2px solid rgba(255,255,255,0.8);border-radius:50%;display:flex;justify-content:center;align-items:center;box-shadow:0 0 5px rgba(0,0,0,0.5);display:none}
 #cross::before,#cross::after{content:'';position:absolute;background:#fff}
 #cross::before{width:2px;height:12px;top:-8px;box-shadow:0 48px 0 #fff}
 #cross::after{width:12px;height:2px;left:-8px;box-shadow:48px 0 0 #fff}
-#cross-aa{position:absolute;top:50%;left:50%;transform:translate(-50%,-50%);width:60px;height:60px;border:2px dashed rgba(255,50,50,0.8);border-radius:50%;display:none;box-shadow:0 0 10px rgba(255,0,0,0.3);transition:width .1s, height .1s}
-#cross-aa::before,#cross-aa::after{content:'';position:absolute;background:rgba(255,50,50,0.8)}
-#cross-aa::before{width:2px;height:20px;left:50%;top:-10px;transform:translateX(-50%);box-shadow:0 40px 0 rgba(255,50,50,0.8)}
-#cross-aa::after{width:20px;height:2px;top:50%;left:-10px;transform:translateY(-50%);box-shadow:40px 0 0 rgba(255,50,50,0.8)}
-#cross-aa-dot{position:absolute;top:50%;left:50%;transform:translate(-50%,-50%);width:4px;height:4px;background:#ff3333;border-radius:50%}
 .marker{position:absolute;transform:translate(-50%,-100%);display:flex;flex-direction:column;align-items:center;pointer-events:none}
 .marker-name{font-size:12px;font-weight:bold;text-shadow:1px 1px 2px #000;margin-bottom:2px}
 .marker-bar{width:60px;height:6px;background:rgba(0,0,0,0.5);border:1px solid #fff;border-radius:3px;overflow:hidden}
-.marker-fill{height:100%;width:100%}
+.marker-fill{height:100%;width:100%;background:#ff4444}
 .enemy .marker-name{color:#ff4444}
-.enemy .marker-fill{background:#ff4444}
 .ally .marker-name{color:#44aaff}
 .ally .marker-fill{background:#44aaff}
-.dmg{position:absolute;color:#ff4444;font-weight:bold;font-size:20px;text-shadow:1px 1px 3px #000;pointer-events:none;animation:floatUp 1s forwards}
+.dmg{position:absolute;color:#ff4444;font-weight:bold;font-size:24px;text-shadow:1px 1px 3px #000;pointer-events:none;animation:floatUp 1s forwards}
 @keyframes floatUp{to{transform:translateY(-60px);opacity:0}}
 #menu{position:fixed;top:0;left:0;width:100%;height:100%;background:linear-gradient(rgba(0,0,0,0.7),rgba(0,0,0,0.9));display:flex;flex-direction:column;justify-content:center;align-items:center;color:#fff;z-index:100}
 #menu h1{font-size:48px;margin-bottom:40px;text-shadow:0 0 20px #00aaff}
@@ -44,39 +41,43 @@ canvas{display:block}
 <h1>Drone vs AA</h1>
 <button class="btn" id="btn-drone">Играть за Дрон</button>
 <button class="btn" id="btn-aa">Играть за ПВО</button>
-<div style="margin-top:20px;font-size:14px;color:#aaa">Дрон: WASD - полет, Space/Ctrl - высота, ЛКМ - бомба<br>ПВО: Мышь - наводка, ЛКМ - огонь, ПКМ - обзор</div>
+<div style="margin-top:20px;font-size:14px;color:#aaa;text-align:center;line-height:1.5">
+<b>Дрон:</b> W/S - Вперед/Назад | A/D - Поворот | Space/Shift - Вверх/Вниз | ЛКМ - Бомба<br>
+<b>ПВО:</b> Мышь - Прицел | ЛКМ - Огонь | ПКМ (зажать) - Обзор
+</div>
 </div>
 <div id="respawn-screen">
 <h2>ВАС СБИЛИ</h2>
 <div id="respawn-timer">5</div>
 </div>
 <div id="hud">
+<button id="menu-btn" onclick="location.reload()">В МЕНЮ</button>
+<div id="score">ПВО уничтожено: 0 / 5</div>
 <div id="hp-bar"><div id="hp-fill"></div><div id="hp-text">100 / 100 HP</div></div>
 <canvas id="minimap" width="220" height="220"></canvas>
 <div id="cross"></div>
-<div id="cross-aa"><div id="cross-aa-dot"></div></div>
 </div>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
 <script>
 // ===== Globals =====
-const SIZE=4000, TEAM_BLUE=0, TEAM_RED=1;
-let scene,camera,renderer,clock,gameMode='none',playerEntity,isDead=false,respawnTime=0,deaths=0;
+const SIZE=5000, TEAM_BLUE=0, TEAM_RED=1;
+let scene,camera,renderer,clock,gameMode='none',playerEntity,isDead=false,respawnTime=0,deaths=0,kills=0;
 const projectiles=[], entities=[];
 const bombPathLine=new THREE.Line();
 const keys={};
 const mouse={x:0,y:0,isDown:false};
-const raycasterMouse=new THREE.Raycaster();
+const raycaster=new THREE.Raycaster();
 const mouseVector=new THREE.Vector2();
-let groundMesh;
+let groundMesh, sunLight;
 
 // ===== Init =====
 function init(){
   scene=new THREE.Scene();
-  scene.background=new THREE.Color(0x87CEEB);
-  scene.fog=new THREE.FogExp2(0x87CEEB,0.0004);
+  scene.background=new THREE.Color(0xaaccff); // Красивое небо
+  scene.fog=new THREE.FogExp2(0xaaccff,0.0003);
   
-  camera=new THREE.PerspectiveCamera(75,innerWidth/innerHeight,0.1,8000);
-  renderer=new THREE.WebGLRenderer({antialias:true});
+  camera=new THREE.PerspectiveCamera(75,innerWidth/innerHeight,0.1,10000);
+  renderer=new THREE.WebGLRenderer({antialias:true,logarithmicDepthBuffer:true});
   renderer.setSize(innerWidth,innerHeight);
   renderer.shadowMap.enabled=true;
   renderer.shadowMap.type=THREE.PCFSoftShadowMap;
@@ -84,20 +85,21 @@ function init(){
   
   clock=new THREE.Clock();
   
-  const hemi=new THREE.HemisphereLight(0xffffff,0x444444,0.8); scene.add(hemi);
-  const sun=new THREE.DirectionalLight(0xfff0cc,1.2);
-  sun.position.set(1000,2000,500);
-  sun.castShadow=true; sun.shadow.camera.top=2000; sun.shadow.camera.bottom=-2000;
-  sun.shadow.camera.left=-2000; sun.shadow.camera.right=2000;
-  sun.shadow.mapSize.width=2048; sun.shadow.mapSize.height=2048;
-  scene.add(sun);
+  // Освещение
+  const hemi=new THREE.HemisphereLight(0xffffff,0x224422,0.6); scene.add(hemi);
+  sunLight=new THREE.DirectionalLight(0xfff5e6,1.2);
+  sunLight.position.set(1000,2000,500);
+  sunLight.castShadow=true; sunLight.shadow.camera.top=3000; sunLight.shadow.camera.bottom=-3000;
+  sunLight.shadow.camera.left=-3000; sunLight.shadow.camera.right=3000;
+  sunLight.shadow.mapSize.width=2048; sunLight.shadow.mapSize.height=2048;
+  scene.add(sunLight);
   
   buildTerrain();
   spawnWorld();
   
   const pathGeo=new THREE.BufferGeometry().setFromPoints([new THREE.Vector3(),new THREE.Vector3()]);
   bombPathLine.geometry=pathGeo;
-  bombPathLine.material=new THREE.LineDashedMaterial({color:0xff0000,dashSize:5,gapSize:5,transparent:true,opacity:0.5});
+  bombPathLine.material=new THREE.LineDashedMaterial({color:0xff0000,dashSize:10,gapSize:10,transparent:true,opacity:0.8,linewidth:2});
   scene.add(bombPathLine);
   
   setupEvents();
@@ -105,27 +107,39 @@ function init(){
 }
 
 // ===== Terrain =====
-function heightAt(x,z){return Math.sin(x*0.001)*40+Math.cos(z*0.0012)*30+Math.sin((x+z)*0.002)*20;}
+function heightAt(x,z){
+  // Более комплексный ландшафт с горами
+  let h = Math.sin(x*0.002)*50 + Math.cos(z*0.0025)*40;
+  h += Math.sin(x*0.01 + z*0.005)*15;
+  h += Math.exp(-((x-1000)**2 + (z-1000)**2)/500000)*300; // Гора
+  h += Math.exp(-((x+1500)**2 + (z+500)**2)/800000)*400; // Гора
+  return h;
+}
 function buildTerrain(){
-  const geo=new THREE.PlaneGeometry(SIZE,SIZE,100,100);geo.rotateX(-Math.PI/2);
+  const geo=new THREE.PlaneGeometry(SIZE,SIZE,150,150);geo.rotateX(-Math.PI/2);
   const pos=geo.attributes.position;
   for(let i=0;i<pos.count;i++){pos.setY(i,heightAt(pos.getX(i),pos.getZ(i)));}
   geo.computeVertexNormals();
-  const mat=new THREE.MeshStandardMaterial({color:0x3d8a40,roughness:0.8,metalness:0.1});
+  const mat=new THREE.MeshStandardMaterial({color:0x4a7c45,roughness:0.9,metalness:0.1});
   groundMesh=new THREE.Mesh(geo,mat);groundMesh.receiveShadow=true;scene.add(groundMesh);
 }
-const raycaster=new THREE.Raycaster();const downVec=new THREE.Vector3(0,-1,0);
-function groundY(x,z){raycaster.set(new THREE.Vector3(x,1000,z),downVec);const hits=raycaster.intersectObject(groundMesh);return hits.length?hits[0].point.y:heightAt(x,z);}
+function groundY(x,z){raycaster.set(new THREE.Vector3(x,2000,z),new THREE.Vector3(0,-1,0));const hits=raycaster.intersectObject(groundMesh);return hits.length?hits[0].point.y:heightAt(x,z);}
 
 // ===== World Gen =====
 function createAA(team,x,z){
   const group=new THREE.Group();group.position.set(x,groundY(x,z),z);
-  const color=team===TEAM_BLUE?0x0044aa:0xaa0000;
-  const base=new THREE.Mesh(new THREE.CylinderGeometry(15,20,15,8),new THREE.MeshStandardMaterial({color:0x333333,roughness:0.7}));base.position.y=7.5;base.castShadow=true;base.receiveShadow=true;group.add(base);
-  const turret=new THREE.Mesh(new THREE.SphereGeometry(12,8,8),new THREE.MeshStandardMaterial({color:color,roughness:0.5}));turret.position.y=18;turret.castShadow=true;group.add(turret);
-  const barrels=new THREE.Group();barrels.position.y=18;
+  const color=team===TEAM_BLUE?0x0055ff:0xaa0000;
+  
+  const base=new THREE.Mesh(new THREE.CylinderGeometry(20,25,15,8),new THREE.MeshStandardMaterial({color:0x333333,roughness:0.8}));
+  base.position.y=7.5;base.castShadow=true;base.receiveShadow=true;group.add(base);
+  
+  const cab=new THREE.Mesh(new THREE.BoxGeometry(25,15,30),new THREE.MeshStandardMaterial({color:color,roughness:0.5}));
+  cab.position.y=22;cab.castShadow=true;group.add(cab);
+  
+  const barrels=new THREE.Group();barrels.position.set(0,22,15);
   for(let i=-1;i<=1;i+=2){
-    const b=new THREE.Mesh(new THREE.CylinderGeometry(2,2,35,8),new THREE.MeshStandardMaterial({color:0x111111}));b.rotation.x=Math.PI/2;b.position.set(i*5,0,15);b.castShadow=true;barrels.add(b);
+    const b=new THREE.Mesh(new THREE.CylinderGeometry(2,3,40,8),new THREE.MeshStandardMaterial({color:0x111111,metalness:0.8}));
+    b.rotation.x=Math.PI/2;b.position.set(i*8,0,20);b.castShadow=true;barrels.add(b);
   }
   group.add(barrels);scene.add(group);
   
@@ -133,60 +147,68 @@ function createAA(team,x,z){
   el.innerHTML=`<div class="marker-name">ПВО</div><div class="marker-bar"><div class="marker-fill"></div></div>`;
   document.getElementById('hud').appendChild(el);
   
-  const ent={type:'aa',team,mesh:group,turret,barrels,pos:group.position,hp:100,maxHp:100,alive:true,cd:Math.random()*2,marker:el,targetYaw:0,targetPitch:0};
+  const ent={type:'aa',team,mesh:group,barrels,pos:group.position,hp:100,maxHp:100,alive:true,cd:Math.random()*3,marker:el,targetYaw:0,targetPitch:0};
   entities.push(ent);return ent;
 }
 
 function createDrone(team,x,y,z){
   const group=new THREE.Group();group.position.set(x,y,z);
-  const color=team===TEAM_BLUE?0x0066ff:0xff0000;
-  const body=new THREE.Mesh(new THREE.BoxGeometry(15,5,25),new THREE.MeshStandardMaterial({color:0x222222}));body.castShadow=true;group.add(body);
-  const wing=new THREE.Mesh(new THREE.BoxGeometry(80,2,15),new THREE.MeshStandardMaterial({color:color}));wing.position.z=-5;wing.castShadow=true;group.add(wing);
-  const tail=new THREE.Mesh(new THREE.BoxGeometry(20,2,8),new THREE.MeshStandardMaterial({color:color}));tail.position.set(0,0,-15);tail.castShadow=true;group.add(tail);
-  const eng=new THREE.Mesh(new THREE.CylinderGeometry(5,5,10,8),new THREE.MeshStandardMaterial({color:0x555555}));eng.rotation.x=Math.PI/2;eng.position.z=10;eng.castShadow=true;group.add(eng);
+  const color=team===TEAM_BLUE?0x00aaff:0xff3333;
+  
+  // Корпус
+  const body=new THREE.Mesh(new THREE.CylinderGeometry(6,6,30,8),new THREE.MeshStandardMaterial({color:0x222222,metalness:0.5}));
+  body.rotation.x=Math.PI/2;body.castShadow=true;group.add(body);
+  // Кабина
+  const cockpit=new THREE.Mesh(new THREE.SphereGeometry(8,8,8),new THREE.MeshStandardMaterial({color:0x111111,roughness:0.2}));
+  cockpit.position.set(0,4,-5);cockpit.scale.set(1,0.6,1.5);cockpit.castShadow=true;group.add(cockpit);
+  // Крылья (квадрокоптер)
+  const arms=new THREE.Group();
+  for(let i=0;i<4;i++){
+    const angle = Math.PI/4 + i*(Math.PI/2);
+    const arm=new THREE.Mesh(new THREE.BoxGeometry(40,2,4),new THREE.MeshStandardMaterial({color:color}));
+    arm.position.set(Math.cos(angle)*20, 0, Math.sin(angle)*20);
+    arm.rotation.y = -angle;
+    arm.castShadow=true;arms.add(arm);
+    // Винты
+    const rotor=new THREE.Mesh(new THREE.CylinderGeometry(10,10,1,12),new THREE.MeshStandardMaterial({color:0x666666,transparent:true,opacity:0.7}));
+    rotor.position.set(Math.cos(angle)*40, 2, Math.sin(angle)*40);
+    arms.add(rotor);
+  }
+  group.add(arms);
   scene.add(group);
   
-  const ent={type:'drone',team,mesh:group,pos:group.position,yaw:team===TEAM_BLUE?0:Math.PI,hp:100,maxHp:100,alive:true,speed:150};
+  const ent={type:'drone',team,mesh:group,pos:group.position,yaw:team===TEAM_BLUE?0:Math.PI,hp:100,maxHp:100,alive:true,speed:150,velocity:new THREE.Vector3()};
   entities.push(ent);return ent;
 }
 
 function createBase(team,x,z){
   const group=new THREE.Group();group.position.set(x,groundY(x,z),z);
-  const color=team===TEAM_BLUE?0x0044aa:0xaa0000;
-  const b=new THREE.Mesh(new THREE.BoxGeometry(100,60,100),new THREE.MeshStandardMaterial({color:0x444444}));b.position.y=30;b.castShadow=true;b.receiveShadow=true;group.add(b);
-  const roof=new THREE.Mesh(new THREE.ConeGeometry(80,40,4),new THREE.MeshStandardMaterial({color:color}));roof.position.y=80;roof.rotation.y=Math.PI/4;roof.castShadow=true;group.add(roof);
-  const tower=new THREE.Mesh(new THREE.CylinderGeometry(5,5,120,8),new THREE.MeshStandardMaterial({color:0x222222}));tower.position.set(40,60,-40);tower.castShadow=true;group.add(tower);
-  const flag=new THREE.Mesh(new THREE.BoxGeometry(30,15,1),new THREE.MeshBasicMaterial({color:color}));flag.position.set(55,110,-40);group.add(flag);
-  scene.add(group);
-}
-function createOutpost(team,x,z){
-  const group=new THREE.Group();group.position.set(x,groundY(x,z),z);
-  const sand=new THREE.Mesh(new THREE.CylinderGeometry(60,70,10,8),new THREE.MeshStandardMaterial({color:0x8c7a5b}));sand.position.y=5;sand.castShadow=true;sand.receiveShadow=true;group.add(sand);
-  const tent=new THREE.Mesh(new THREE.ConeGeometry(20,30,4),new THREE.MeshStandardMaterial({color:0x556b2f}));tent.position.y=25;tent.castShadow=true;group.add(tent);
+  const color=team===TEAM_BLUE?0x0055ff:0xaa0000;
+  const b=new THREE.Mesh(new THREE.BoxGeometry(150,60,150),new THREE.MeshStandardMaterial({color:0x444444}));b.position.y=30;b.castShadow=true;b.receiveShadow=true;group.add(b);
+  const roof=new THREE.Mesh(new THREE.ConeGeometry(120,40,4),new THREE.MeshStandardMaterial({color:color}));roof.position.y=80;roof.rotation.y=Math.PI/4;roof.castShadow=true;group.add(roof);
   scene.add(group);
 }
 
 function spawnWorld(){
-  createBase(TEAM_BLUE, -1500, 0); createBase(TEAM_RED, 1500, 0);
-  createOutpost(TEAM_BLUE, -600, 0); createOutpost(TEAM_RED, 600, 0);
+  createBase(TEAM_BLUE, -2000, 0); createBase(TEAM_RED, 2000, 0);
   
-  for(let i=0;i<5;i++){
-    createAA(TEAM_BLUE, -800-Math.random()*400, (Math.random()-0.5)*600);
-    createAA(TEAM_RED, 800+Math.random()*400, (Math.random()-0.5)*600);
-  }
+  // ПВО врагов
+  for(let i=0;i<5;i++) createAA(TEAM_RED, 800+Math.random()*800, (Math.random()-0.5)*2000);
+  // Союзные ПВО
+  for(let i=0;i<5;i++) createAA(TEAM_BLUE, -800-Math.random()*800, (Math.random()-0.5)*2000);
   
-  const treeGeo=new THREE.ConeGeometry(15,50,6);const treeMat=new THREE.MeshStandardMaterial({color:0x1a5d1a});
-  const houseGeo=new THREE.BoxGeometry(40,30,50);const houseMat=new THREE.MeshStandardMaterial({color:0xccaa77});
-  const roofGeo=new THREE.ConeGeometry(35,20,4);const roofMat=new THREE.MeshStandardMaterial({color:0x8b4513});
-  for(let i=0;i<150;i++){
+  // Окружение (деревья, камни)
+  const treeGeo=new THREE.ConeGeometry(20,60,7);const treeMat=new THREE.MeshStandardMaterial({color:0x1a5d1a});
+  const rockGeo=new THREE.DodecahedronGeometry(15);const rockMat=new THREE.MeshStandardMaterial({color:0x888888,roughness:1});
+  
+  for(let i=0;i<300;i++){
     const x=(Math.random()-0.5)*SIZE*0.9, z=(Math.random()-0.5)*SIZE*0.9;
-    if(Math.abs(x)<1000)continue;
+    if(Math.abs(x)<800)continue; // Не спавним в центре боя
     const y=groundY(x,z);
-    if(Math.random()>0.5){
-      const t=new THREE.Mesh(treeGeo,treeMat);t.position.set(x,y+25,z);t.castShadow=true;scene.add(t);
+    if(Math.random()>0.3){
+      const t=new THREE.Mesh(treeGeo,treeMat);t.position.set(x,y+30,z);t.scale.setScalar(0.8+Math.random());t.castShadow=true;t.receiveShadow=true;scene.add(t);
     }else{
-      const h=new THREE.Mesh(houseGeo,houseMat);h.position.set(x,y+15,z);h.rotation.y=Math.random()*Math.PI;h.castShadow=true;h.receiveShadow=true;scene.add(h);
-      const r=new THREE.Mesh(roofGeo,roofMat);r.position.set(x,y+40,z);r.rotation.y=h.rotation.y+Math.PI/4;r.castShadow=true;scene.add(r);
+      const r=new THREE.Mesh(rockGeo,rockMat);r.position.set(x,y+5,z);r.rotation.set(Math.random(),Math.random(),Math.random());r.castShadow=true;r.receiveShadow=true;scene.add(r);
     }
   }
 }
@@ -224,54 +246,53 @@ function startGame(mode){
   document.getElementById('menu').style.display='none';
   document.getElementById('hud').style.display='block';
   document.getElementById('cross').style.display=mode==='drone'?'flex':'none';
-  document.getElementById('cross-aa').style.display=mode==='aa'?'block':'none';
   
   if(mode==='drone'){
-    playerEntity=createDrone(TEAM_BLUE, -1200, 300, 0);
-    camera.position.set(playerEntity.pos.x, playerEntity.pos.y+50, playerEntity.pos.z+100);
+    playerEntity=createDrone(TEAM_BLUE, -1500, 400, 0);
+    camera.position.set(playerEntity.pos.x, playerEntity.pos.y+50, playerEntity.pos.z+150);
   }else{
-    playerEntity=createAA(TEAM_BLUE, -1200, 0);
-    playerEntity.mesh.visible=false;
-    playerEntity.pitch=0; // Camera pitch
-    camera.position.set(playerEntity.pos.x, playerEntity.pos.y+25, playerEntity.pos.z);
+    playerEntity=createAA(TEAM_BLUE, -1500, 0);
+    playerEntity.mesh.visible=false; // Скрываем модель игрока
+    // Камера для ПВО смотрит вниз под углом
+    camera.position.set(playerEntity.pos.x, playerEntity.pos.y+40, playerEntity.pos.z+50);
+    camera.rotation.x = -0.3;
   }
-  deaths=0; isDead=false; document.getElementById('respawn-screen').style.display='none';
+  deaths=0; kills=0; isDead=false; document.getElementById('respawn-screen').style.display='none';
 }
 
 // ===== Combat =====
 function shoot(){
   if(gameMode==='drone'){
-    const bomb=new THREE.Mesh(new THREE.SphereGeometry(4,8,8),new THREE.MeshStandardMaterial({color:0x333333}));
-    bomb.position.copy(playerEntity.pos);bomb.position.y-=5;bomb.castShadow=true;scene.add(bomb);
+    // Бомба
+    const bomb=new THREE.Mesh(new THREE.CylinderGeometry(3,3,12,8),new THREE.MeshStandardMaterial({color:0x111111,metalness:0.8}));
+    bomb.rotation.x=Math.PI/2;
     const fwd=new THREE.Vector3(-Math.sin(playerEntity.yaw),0,-Math.cos(playerEntity.yaw));
-    bomb.position.add(fwd.clone().multiplyScalar(20));
-    projectiles.push({mesh:bomb,vel:fwd.multiplyScalar(100),isBomb:true,life:10,dmg:50,team:playerEntity.team});
+    bomb.position.copy(playerEntity.pos).add(fwd.clone().multiplyScalar(30));
+    bomb.position.y-=10;
+    bomb.castShadow=true;scene.add(bomb);
+    projectiles.push({mesh:bomb,vel:fwd.clone().multiplyScalar(150).add(new THREE.Vector3(0,-10,0)),isBomb:true,life:10,dmg:50,team:playerEntity.team});
   }else{
-    // AA Fire towards the crosshair intersection
-    raycasterMouse.setFromCamera(mouseVector, camera);
-    const intersects=raycasterMouse.intersectObjects([groundMesh,...entities.filter(e=>e.alive).map(e=>e.mesh)]);
+    // ПВО стреляет
+    raycaster.setFromCamera(mouseVector, camera);
+    const intersects=raycaster.intersectObjects([groundMesh,...entities.filter(e=>e.alive).map(e=>e.mesh)]);
     let targetPoint=new THREE.Vector3();
-    if(intersects.length>0){
-      targetPoint.copy(intersects[0].point);
-    }else{
-      targetPoint.copy(camera.position).add(raycasterMouse.ray.direction.clone().multiplyScalar(2000));
-    }
+    if(intersects.length>0) targetPoint.copy(intersects[0].point);
+    else targetPoint.copy(camera.position).add(raycaster.ray.direction.clone().multiplyScalar(2000));
     
-    // Determine barrel origin
-    const startPos=playerEntity.pos.clone();startPos.y+=18;
+    const startPos=playerEntity.pos.clone();startPos.y+=22;
     const dir=targetPoint.clone().sub(startPos).normalize();
     
     const b=new THREE.Mesh(new THREE.SphereGeometry(2,4,4),new THREE.MeshBasicMaterial({color:0x00ffff}));
-    b.position.copy(startPos).add(dir.clone().multiplyScalar(20));
+    b.position.copy(startPos).add(dir.clone().multiplyScalar(30));
     scene.add(b);
-    projectiles.push({mesh:b,vel:dir.multiplyScalar(400),isBomb:false,life:5,dmg:25,team:playerEntity.team});
+    projectiles.push({mesh:b,vel:dir.multiplyScalar(500),isBomb:false,life:5,dmg:25,team:playerEntity.team});
   }
 }
 
-function findNearestEnemy(pos,myTeam){
+function findNearestEnemy(pos,myTeam,type){
   let nearest=null,minD=3000;
   entities.forEach(e=>{
-    if(e.alive&&e.team!==myTeam&&e.type==='drone'){
+    if(e.alive&&e.team!==myTeam&&e.type===type){
       const d=e.pos.distanceTo(pos);if(d<minD){minD=d;nearest=e;}
     }
   });
@@ -280,7 +301,11 @@ function findNearestEnemy(pos,myTeam){
 
 function applyDamage(ent,dmg){
   ent.hp-=dmg;
-  if(ent.hp<=0){ent.hp=0;ent.alive=false;ent.mesh.visible=false;if(ent.marker)ent.marker.style.display='none';}
+  if(ent.hp<=0){
+    ent.hp=0;ent.alive=false;ent.mesh.visible=false;
+    if(ent.marker)ent.marker.style.display='none';
+    if(ent.team===TEAM_RED){kills++;document.getElementById('score').innerText=`ПВО уничтожено: ${kills} / 5`;}
+  }
 }
 
 // ===== Update Loop =====
@@ -301,12 +326,14 @@ function animate(){
     document.getElementById('respawn-timer').innerText=Math.ceil(respawnTime);
     if(respawnTime<=0){
       if(deaths>=10){
-        alert('Вы проиграли! Все 10 жизней потрачены.');location.reload();
+        alert('Вы проиграли!');location.reload();
       }else{
         respawnPlayer();
       }
     }
   }
+  
+  if(kills>=5){alert('Победа! Вы уничтожили все ПВО противника.');location.reload();}
   
   renderer.render(scene,camera);
 }
@@ -314,84 +341,80 @@ function animate(){
 function updatePlayer(dt){
   const p=playerEntity;
   if(gameMode==='drone'){
+    // Физика полета
     let turn=(keys['KeyA']||keys['ArrowLeft']?1:0)-(keys['KeyD']||keys['ArrowRight']?1:0);
     p.yaw+=turn*1.5*dt;
+    
     let mv=(keys['KeyW']||keys['ArrowUp']?1:0)-(keys['KeyS']||keys['ArrowDown']?0.5:0);
-    let up=(keys['Space']?1:0)-(keys['ControlLeft']||keys['ShiftLeft']?1:0);
+    let up=(keys['Space']?1:0)-(keys['ShiftLeft']||keys['ControlLeft']?1:0);
     
-    const fx=-Math.sin(p.yaw),fz=-Math.cos(p.yaw);
-    p.pos.x+=fx*p.speed*mv*dt;p.pos.z+=fz*p.speed*mv*dt;
-    p.pos.y+=up*80*dt;
+    // Инерция
+    const targetVel=new THREE.Vector3(-Math.sin(p.yaw)*p.speed*mv, up*100, -Math.cos(p.yaw)*p.speed*mv);
+    p.velocity.lerp(targetVel, dt*3); // Плавный разгон/торможение
     
+    p.pos.add(p.velocity.clone().multiplyScalar(dt));
+    
+    // Ограничения
     const lim=SIZE/2-100;p.pos.x=Math.max(-lim,Math.min(lim,p.pos.x));p.pos.z=Math.max(-lim,Math.min(lim,p.pos.z));
-    p.pos.y=Math.max(groundY(p.pos.x,p.pos.z)+30,p.pos.y);
+    const minY=groundY(p.pos.x,p.pos.z)+30;p.pos.y=Math.max(minY,p.pos.y);
     
-    p.mesh.position.copy(p.pos);p.mesh.rotation.y=p.yaw;p.mesh.rotation.z=-turn*0.5;
+    // Визуал: Крен при повороте и наклон при движении
+    p.mesh.position.copy(p.pos);
+    p.mesh.rotation.y=p.yaw;
+    p.mesh.rotation.z = THREE.MathUtils.lerp(p.mesh.rotation.z, -turn*0.4, dt*5);
+    p.mesh.rotation.x = THREE.MathUtils.lerp(p.mesh.rotation.x, -p.velocity.z*0.002, dt*5);
     
-    // Bomb Path
-    const fwd=new THREE.Vector3(fx,0,fz).normalize();
-    const start=p.pos.clone().add(fwd.clone().multiplyScalar(20));
-    const points=[];let curr=start.clone();let vel=fwd.clone().multiplyScalar(100);vel.y=0;
-    for(let i=0;i<30;i++){
+    // Траектория бомбы
+    const start=p.pos.clone();
+    let curr=start.clone();let vel=new THREE.Vector3(-Math.sin(p.yaw)*p.speed*mv, 0, -Math.cos(p.yaw)*p.speed*mv);
+    const points=[curr.clone()];
+    for(let i=0;i<40;i++){
+      vel.y-=9.8*10*dt*2; // Ускорение свободного падения (усиленное для игры)
+      curr.add(vel.clone().multiplyScalar(dt*2));
       points.push(curr.clone());
-      vel.y-=98*dt*0.5;
-      curr.add(vel.clone().multiplyScalar(dt*1.5));
       if(curr.y<groundY(curr.x,curr.z))break;
     }
     if(points.length>1){bombPathLine.geometry.setFromPoints(points);bombPathLine.computeLineDistances();bombPathLine.visible=true;}
   }else{
-    // AA Mouse Aiming
+    // ПВО - прицел
     mouseVector.x=mouse.x; mouseVector.y=mouse.y;
-    raycasterMouse.setFromCamera(mouseVector, camera);
-    const intersects=raycasterMouse.intersectObject(groundMesh);
+    raycaster.setFromCamera(mouseVector, camera);
+    const intersects=raycaster.intersectObject(groundMesh);
     if(intersects.length>0){
       const targetPoint=intersects[0].point;
-      // Calculate yaw
       const dx=targetPoint.x-p.pos.x;
       const dz=targetPoint.z-p.pos.z;
-      p.yaw=Math.atan2(dx,dz);
-      p.mesh.rotation.y=p.yaw;
-      // Calculate pitch (barrels)
+      p.targetYaw=Math.atan2(dx,dz);
+      p.mesh.rotation.y=THREE.MathUtils.lerp(p.mesh.rotation.y, p.targetYaw, dt*5);
+      
       const dist=Math.sqrt(dx*dx+dz*dz);
-      p.pitch=Math.atan2(targetPoint.y-(p.pos.y+18),dist);
-      p.barrels.rotation.x=-p.pitch;
+      p.targetPitch=Math.atan2(targetPoint.y-(p.pos.y+22),dist);
+      p.barrels.rotation.x = THREE.MathUtils.lerp(p.barrels.rotation.x, -p.targetPitch, dt*5);
     }
   }
 }
 
-// Free camera for AA mode
 let camYaw=0, camPitch=0;
 function updateCamera(dt){
   const p=playerEntity;
   if(gameMode==='drone'){
-    const camOffset=new THREE.Vector3(Math.sin(p.yaw)*120, 40, Math.cos(p.yaw)*120);
+    // Камера от третьего лица с инерцией
+    const camOffset=new THREE.Vector3(Math.sin(p.yaw)*180, 60, Math.cos(p.yaw)*180);
     const targetPos=p.pos.clone().add(camOffset);
-    camera.position.lerp(targetPos,dt*5);
-    camera.lookAt(p.pos.clone().add(new THREE.Vector3(0,10,0)));
+    camera.position.lerp(targetPos,dt*4);
+    camera.lookAt(p.pos.clone().add(new THREE.Vector3(0,20,0)));
     bombPathLine.visible=true;
   }else{
-    // AA Mode: Stationary at base, but can look around with RMB
-    camera.position.set(p.pos.x, p.pos.y+25, p.pos.z);
-    
+    // ПВО вид от первого лица (башня)
     if(mouse.isDown){
-      camYaw-=mouse.x*0.01;
-      camPitch-=mouse.y*0.01;
-      camPitch=Math.max(-0.5,Math.min(Math.PI/2.5,camPitch));
-    } else {
-      // Smoothly return behind turret
-      let targetYaw=-p.yaw+Math.PI;
-      let dyaw=targetYaw-camYaw;
-      while(dyaw>Math.PI)dyaw-=Math.PI*2;while(dyaw<-Math.PI)dyaw+=Math.PI*2;
-      camYaw+=dyaw*dt*2;
-      camPitch+=(0.2-camPitch)*dt*2;
+      camYaw-=mouse.x*0.02; camPitch-=mouse.y*0.02;
+      camPitch=Math.max(-0.8,Math.min(0.5,camPitch));
+    }else{
+      camYaw+=(-p.mesh.rotation.y-camYaw)*dt*2;
+      camPitch+=(0-camPitch)*dt*2;
     }
-    
-    const dir=new THREE.Vector3(
-      -Math.sin(camYaw)*Math.cos(camPitch),
-      Math.sin(camPitch),
-      -Math.cos(camYaw)*Math.cos(camPitch)
-    );
-    camera.lookAt(camera.position.clone().add(dir.multiplyScalar(100)));
+    camera.position.set(p.pos.x, p.pos.y+25, p.pos.z);
+    camera.rotation.set(camPitch, camYaw, 0, 'YXZ');
     bombPathLine.visible=false;
   }
 }
@@ -400,27 +423,25 @@ function updateEntities(dt){
   entities.forEach(e=>{
     if(!e.alive)return;
     if(e.type==='aa'&&e!==playerEntity){
-      let target=findNearestEnemy(e.pos,e.team);
+      let target=findNearestEnemy(e.pos,e.team,'drone');
       if(target){
         const dx=target.pos.x-e.pos.x,dz=target.pos.z-e.pos.z,dy=target.pos.y-e.pos.y;
         const dist=Math.sqrt(dx*dx+dz*dz);
-        const targetYaw=Math.atan2(dx,dz);
-        const targetPitch=Math.atan2(dy,dist);
+        e.targetYaw=Math.atan2(dx,dz);
+        e.targetPitch=Math.atan2(dy,dist);
         
-        let dyaw=targetYaw-e.mesh.rotation.y;
-        while(dyaw>Math.PI)dyaw-=Math.PI*2;while(dyaw<-Math.PI)dyaw+=Math.PI*2;
-        e.mesh.rotation.y+=dyaw*dt*3;
-        e.barrels.rotation.x=-targetPitch;
+        e.mesh.rotation.y=THREE.MathUtils.lerp(e.mesh.rotation.y, e.targetYaw, dt*2);
+        e.barrels.rotation.x=THREE.MathUtils.lerp(e.barrels.rotation.x, -e.targetPitch, dt*2);
         
         e.cd-=dt;
-        if(e.cd<=0&&dist<1500){
-          e.cd=1.2+Math.random();
-          const b=new THREE.Mesh(new THREE.SphereGeometry(2,4,4),new THREE.MeshBasicMaterial({color:e.team===TEAM_BLUE?0x00ffff:0xff0000}));
-          b.position.copy(e.pos);b.position.y+=20;
-          const aim=target.pos.clone().add(new THREE.Vector3((Math.random()-0.5)*30,(Math.random()-0.5)*30,(Math.random()-0.5)*30));
+        if(e.cd<=0&&dist<2000){
+          e.cd=1.5+Math.random()*1.5; // Задержка выстрела
+          const b=new THREE.Mesh(new THREE.SphereGeometry(3,6,6),new THREE.MeshBasicMaterial({color:e.team===TEAM_BLUE?0x00ffff:0xff0000}));
+          b.position.copy(e.pos);b.position.y+=22;
+          const aim=target.pos.clone().add(new THREE.Vector3((Math.random()-0.5)*50,(Math.random()-0.5)*50,(Math.random()-0.5)*50)); // Разброс
           const dir=aim.sub(b.position).normalize();
           scene.add(b);
-          projectiles.push({mesh:b,vel:dir.multiplyScalar(350),isBomb:false,life:5,dmg:20,team:e.team});
+          projectiles.push({mesh:b,vel:dir.multiplyScalar(450),isBomb:false,life:5,dmg:25,team:e.team});
         }
       }
     }
@@ -431,20 +452,20 @@ function updateProjectiles(dt){
   for(let i=projectiles.length-1;i>=0;i--){
     const p=projectiles[i];p.life-=dt;
     p.mesh.position.add(p.vel.clone().multiplyScalar(dt));
-    if(p.isBomb){p.vel.y-=98*dt;}
+    if(p.isBomb)p.vel.y-=9.8*15*dt;
     
     let hit=false;
     
     entities.forEach(e=>{
       if(e.alive&&e.team!==p.team&&e!==playerEntity){
-        const r=e.type==='drone'?30:25;
+        const r=e.type==='drone'?40:30;
         if(p.mesh.position.distanceTo(e.pos)<r){
           applyDamage(e,p.dmg);hit=true;
           createExplosion(p.mesh.position);
         }
       }
       if(e===playerEntity&&e.alive&&e.team!==p.team&&p.team!==-1){
-        if(p.mesh.position.distanceTo(e.pos)<20){
+        if(p.mesh.position.distanceTo(e.pos)<30){
           applyDamage(e,p.dmg);hit=true;createExplosion(p.mesh.position);
           const v=p.mesh.position.clone().project(camera);
           spawnDmgText('-'+p.dmg,(v.x*0.5+0.5)*innerWidth,(-v.y*0.5+0.5)*innerHeight);
@@ -460,10 +481,10 @@ function updateProjectiles(dt){
 }
 
 function createExplosion(pos){
-  const geo=new THREE.SphereGeometry(5,8,8);
+  const geo=new THREE.SphereGeometry(10,8,8);
   const mat=new THREE.MeshBasicMaterial({color:0xffaa00,transparent:true,opacity:1});
   const mesh=new THREE.Mesh(geo,mat);mesh.position.copy(pos);scene.add(mesh);
-  setTimeout(()=>scene.remove(mesh),300);
+  setTimeout(()=>scene.remove(mesh),200);
 }
 
 function playerDie(){
@@ -477,10 +498,10 @@ function respawnPlayer(){
   isDead=false;document.getElementById('respawn-screen').style.display='none';
   playerEntity.hp=100;playerEntity.alive=true;
   if(gameMode==='drone'){
-    playerEntity.pos.set(-1200,300,0);playerEntity.yaw=0;
+    playerEntity.pos.set(-1500,400,0);playerEntity.yaw=0;playerEntity.velocity.set(0,0,0);
     playerEntity.mesh.visible=true;
   }else{
-    playerEntity.pos.set(-1200,groundY(-1200,0),0);
+    playerEntity.pos.set(-1500,groundY(-1500,0),0);
     playerEntity.mesh.visible=false;
   }
 }
@@ -491,14 +512,14 @@ function updateHUD(){
   if(!playerEntity)return;
   const pct=Math.max(0,playerEntity.hp)/playerEntity.maxHp*100;
   document.getElementById('hp-fill').style.width=pct+'%';
-  document.getElementById('hp-fill').style.background=pct>50?'linear-gradient(90deg,#00ff00,#88ff00)':pct>25?'linear-gradient(90deg,#ffaa00,#ffff00)':'linear-gradient(90deg,#ff0000,#ff4444)';
+  document.getElementById('hp-fill').style.background=pct>50?'#00ff00':pct>25?'#ffaa00':'#ff0000';
   document.getElementById('hp-text').innerText=Math.ceil(Math.max(0,playerEntity.hp))+' / 100 HP';
   
   const v=new THREE.Vector3();
   entities.forEach(e=>{
     if(!e.marker)return;
     if(!e.alive||e===playerEntity){e.marker.style.display='none';return;}
-    v.copy(e.pos);v.y+=e.type==='aa'?40:10;v.project(camera);
+    v.copy(e.pos);v.y+=e.type==='aa'?40:15;v.project(camera);
     if(v.z>1||v.z<-1){e.marker.style.display='none';return;}
     e.marker.style.display='flex';
     e.marker.style.left=((v.x*0.5+0.5)*innerWidth)+'px';
