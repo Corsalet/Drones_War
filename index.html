@@ -4,46 +4,59 @@
 <meta charset="UTF-8">
 <title>Tactical Air Defense Simulator</title>
 <style>
-* { margin: 0; padding: 0; box-sizing: border-box; }
-body { overflow: hidden; font-family: 'Arial', sans-serif; background: #000; }
-#gameCanvas { display: block; }
+* { margin: 0; padding: 0; box-sizing: border-box; user-select: none; }
+body { overflow: hidden; font-family: 'Segoe UI', Arial, sans-serif; background: #000; }
 
 #mainMenu {
     position: fixed; top: 0; left: 0; width: 100%; height: 100%;
-    background: linear-gradient(135deg, #1a1a2e 0%, #16213e 100%);
+    background: linear-gradient(135deg, #0a1628 0%, #1a2a4a 50%, #0a1628 100%);
     display: flex; flex-direction: column; justify-content: center; align-items: center;
     z-index: 1000;
 }
+#mainMenu::before {
+    content: ''; position: absolute; top: 0; left: 0; width: 100%; height: 100%;
+    background: radial-gradient(circle at 30% 50%, rgba(0,100,255,0.1) 0%, transparent 50%),
+                radial-gradient(circle at 70% 50%, rgba(255,50,50,0.1) 0%, transparent 50%);
+}
 #mainMenu h1 {
-    color: #00ff88; font-size: 48px; margin-bottom: 40px;
-    text-shadow: 0 0 20px #00ff88;
+    color: #00ff88; font-size: 52px; margin-bottom: 10px;
+    text-shadow: 0 0 30px #00ff88, 0 0 60px #00ff88;
+    letter-spacing: 4px; z-index: 1;
+}
+#mainMenu .subtitle {
+    color: #88aacc; font-size: 16px; margin-bottom: 40px;
+    letter-spacing: 8px; z-index: 1;
 }
 .menuBtn {
-    background: rgba(0, 255, 136, 0.1); border: 2px solid #00ff88;
-    color: #00ff88; padding: 15px 40px; margin: 10px; font-size: 18px;
-    cursor: pointer; transition: all 0.3s; min-width: 300px;
+    background: rgba(0, 255, 136, 0.05); border: 2px solid #00ff88;
+    color: #00ff88; padding: 16px 50px; margin: 8px; font-size: 18px;
+    cursor: pointer; transition: all 0.3s; min-width: 320px;
+    letter-spacing: 2px; z-index: 1; position: relative;
+    font-family: 'Segoe UI', Arial, sans-serif;
 }
 .menuBtn:hover {
-    background: rgba(0, 255, 136, 0.3); transform: scale(1.05);
-    box-shadow: 0 0 20px #00ff88;
+    background: rgba(0, 255, 136, 0.2); transform: scale(1.03);
+    box-shadow: 0 0 25px rgba(0,255,136,0.4), inset 0 0 25px rgba(0,255,136,0.1);
 }
 
 #shopMenu {
     position: fixed; top: 50%; left: 50%; transform: translate(-50%, -50%);
-    background: rgba(20, 20, 40, 0.95); border: 2px solid #00ff88;
-    padding: 30px; display: none; z-index: 1001; min-width: 500px;
+    background: rgba(10, 20, 40, 0.97); border: 2px solid #00ff88;
+    padding: 30px; display: none; z-index: 1001; min-width: 550px;
+    box-shadow: 0 0 50px rgba(0,255,136,0.2);
 }
-#shopMenu h2 { color: #00ff88; margin-bottom: 20px; text-align: center; }
+#shopMenu h2 { color: #00ff88; margin-bottom: 20px; text-align: center; letter-spacing: 3px; }
 .shopItem {
-    background: rgba(0, 255, 136, 0.1); border: 1px solid #00ff88;
+    background: rgba(0, 255, 136, 0.05); border: 1px solid rgba(0,255,136,0.3);
     padding: 15px; margin: 10px 0; display: flex; justify-content: space-between;
-    align-items: center;
+    align-items: center; transition: all 0.3s;
 }
+.shopItem:hover { background: rgba(0, 255, 136, 0.1); }
 .shopItem button {
     background: #00ff88; color: #000; border: none; padding: 8px 20px;
-    cursor: pointer; font-weight: bold;
+    cursor: pointer; font-weight: bold; font-size: 14px;
 }
-.shopItem button:disabled { background: #666; cursor: not-allowed; }
+.shopItem button:disabled { background: #444; color: #888; cursor: not-allowed; }
 
 #hud {
     position: fixed; top: 0; left: 0; width: 100%; height: 100%;
@@ -51,104 +64,131 @@ body { overflow: hidden; font-family: 'Arial', sans-serif; background: #000; }
 }
 #credits {
     position: absolute; top: 20px; right: 20px;
-    color: #00ff88; font-size: 24px; font-weight: bold;
-    text-shadow: 0 0 10px #00ff88;
+    color: #00ff88; font-size: 22px; font-weight: bold;
+    text-shadow: 0 0 10px #000;
 }
 #timer {
-    position: absolute; top: 20px; left: 50%; transform: translateX(-50%);
-    color: #fff; font-size: 28px; font-weight: bold;
+    position: absolute; top: 15px; left: 50%; transform: translateX(-50%);
+    color: #fff; font-size: 32px; font-weight: bold;
     text-shadow: 0 0 10px #000;
 }
 #baseHP {
-    position: absolute; top: 60px; left: 50%; transform: translateX(-50%);
-    width: 300px; height: 20px; background: rgba(0,0,0,0.5);
-    border: 2px solid #fff;
+    position: absolute; top: 55px; left: 50%; transform: translateX(-50%);
+    width: 300px; height: 16px; background: rgba(0,0,0,0.7);
+    border: 1px solid #fff; border-radius: 2px;
 }
 #baseHPBar {
     height: 100%; background: linear-gradient(90deg, #ff0000, #ffff00, #00ff00);
-    width: 100%; transition: width 0.3s;
+    width: 100%; transition: width 0.3s; border-radius: 2px;
 }
 #minimap {
     position: absolute; bottom: 20px; right: 20px;
-    width: 200px; height: 200px; background: rgba(0,0,0,0.7);
-    border: 2px solid #00ff88;
+    width: 180px; height: 180px; background: rgba(0,20,0,0.8);
+    border: 2px solid #00ff88; border-radius: 4px;
 }
 #minimapCanvas { width: 100%; height: 100%; }
 
 #aaCrosshair {
     position: absolute; top: 50%; left: 50%; transform: translate(-50%, -50%);
-    width: 100px; height: 100px; display: none;
+    width: 120px; height: 120px; display: none;
 }
 #aaCrosshair::before, #aaCrosshair::after {
-    content: ''; position: absolute; background: #00ff88;
+    content: ''; position: absolute; background: rgba(0,255,136,0.7);
 }
-#aaCrosshair::before { width: 2px; height: 100%; left: 50%; transform: translateX(-50%); }
-#aaCrosshair::after { width: 100%; height: 2px; top: 50%; transform: translateY(-50%); }
+#aaCrosshair::before { width: 1px; height: 100%; left: 50%; transform: translateX(-50%); }
+#aaCrosshair::after { width: 100%; height: 1px; top: 50%; transform: translateY(-50%); }
 #heatBar {
-    position: absolute; bottom: 100px; left: 50%; transform: translateX(-50%);
-    width: 200px; height: 20px; background: rgba(0,0,0,0.5);
-    border: 2px solid #fff; display: none;
+    position: absolute; bottom: 80px; left: 50%; transform: translateX(-50%);
+    width: 200px; height: 14px; background: rgba(0,0,0,0.7);
+    border: 1px solid #fff; display: none; border-radius: 2px;
 }
 #heatBarFill {
     height: 100%; background: linear-gradient(90deg, #00ff00, #ffff00, #ff0000);
-    width: 0%; transition: width 0.1s;
+    width: 0%; transition: width 0.1s; border-radius: 2px;
 }
 #ammoCount {
-    position: absolute; bottom: 130px; left: 50%; transform: translateX(-50%);
-    color: #fff; font-size: 20px; display: none;
+    position: absolute; bottom: 100px; left: 50%; transform: translateX(-50%);
+    color: #fff; font-size: 18px; display: none;
+    text-shadow: 0 0 5px #000;
 }
 
-#fpvHUD {
-    position: absolute; top: 0; left: 0; width: 100%; height: 100%;
-    display: none;
-}
+#fpvHUD { position: absolute; top: 0; left: 0; width: 100%; height: 100%; display: none; }
 #artificialHorizon {
     position: absolute; top: 50%; left: 50%; transform: translate(-50%, -50%);
-    width: 300px; height: 300px; border: 2px solid rgba(0,255,136,0.5);
+    width: 250px; height: 250px; border: 2px solid rgba(0,255,136,0.5);
     border-radius: 50%; overflow: hidden;
 }
 #horizonInner {
     width: 100%; height: 200%; background: linear-gradient(180deg, #87ceeb 0%, #87ceeb 50%, #8b4513 50%, #8b4513 100%);
-    transition: transform 0.1s;
+    transition: transform 0.05s;
 }
 #speedIndicator {
-    position: absolute; left: 50px; top: 50%; transform: translateY(-50%);
-    color: #00ff88; font-size: 24px; font-weight: bold;
+    position: absolute; left: 40px; top: 50%; transform: translateY(-50%);
+    color: #00ff88; font-size: 20px; font-weight: bold;
+    text-shadow: 0 0 5px #000;
 }
 #altitudeIndicator {
-    position: absolute; right: 50px; top: 50%; transform: translateY(-50%);
-    color: #00ff88; font-size: 24px; font-weight: bold;
+    position: absolute; right: 40px; top: 50%; transform: translateY(-50%);
+    color: #00ff88; font-size: 20px; font-weight: bold;
+    text-shadow: 0 0 5px #000;
 }
 #recIndicator {
-    position: absolute; top: 30px; left: 30px;
-    color: #ff0000; font-size: 20px; font-weight: bold;
+    position: absolute; top: 25px; left: 25px;
+    color: #ff0000; font-size: 18px; font-weight: bold;
     animation: blink 1s infinite;
 }
 @keyframes blink { 0%, 50% { opacity: 1; } 51%, 100% { opacity: 0; } }
 #fpvCrosshair {
     position: absolute; top: 50%; left: 50%; transform: translate(-50%, -50%);
-    width: 80px; height: 80px; border: 2px solid #00ff88; border-radius: 50%;
+    width: 60px; height: 60px; border: 1px solid rgba(0,255,136,0.6); border-radius: 50%;
 }
 #fpvCrosshair::before, #fpvCrosshair::after {
-    content: ''; position: absolute; background: #00ff88;
+    content: ''; position: absolute; background: rgba(0,255,136,0.6);
 }
-#fpvCrosshair::before { width: 2px; height: 100%; left: 50%; transform: translateX(-50%); }
-#fpvCrosshair::after { width: 100%; height: 2px; top: 50%; transform: translateY(-50%); }
+#fpvCrosshair::before { width: 1px; height: 100%; left: 50%; transform: translateX(-50%); }
+#fpvCrosshair::after { width: 100%; height: 1px; top: 50%; transform: translateY(-50%); }
 
 #lives {
     position: absolute; top: 20px; left: 20px;
-    color: #ff0000; font-size: 24px; font-weight: bold;
+    color: #ff4444; font-size: 22px; font-weight: bold;
+    text-shadow: 0 0 10px #000; display: none;
 }
+
+#exitBtn {
+    position: absolute; top: 20px; left: 20px;
+    background: rgba(255,50,50,0.3); border: 1px solid #ff4444;
+    color: #ff4444; padding: 8px 16px; cursor: pointer;
+    font-size: 14px; pointer-events: all; display: none;
+    font-family: 'Segoe UI', Arial, sans-serif;
+}
+#exitBtn:hover { background: rgba(255,50,50,0.6); }
+
+#pauseBtn {
+    position: absolute; top: 20px; left: 130px;
+    background: rgba(0,255,136,0.2); border: 1px solid #00ff88;
+    color: #00ff88; padding: 8px 16px; cursor: pointer;
+    font-size: 14px; pointer-events: all; display: none;
+    font-family: 'Segoe UI', Arial, sans-serif;
+}
+#pauseBtn:hover { background: rgba(0,255,136,0.4); }
+
 #gameOver {
     position: fixed; top: 50%; left: 50%; transform: translate(-50%, -50%);
-    background: rgba(0,0,0,0.9); border: 3px solid #ff0000;
+    background: rgba(10,20,40,0.97); border: 3px solid #ff4444;
     padding: 40px; display: none; z-index: 1002; text-align: center;
+    min-width: 400px; box-shadow: 0 0 50px rgba(255,0,0,0.3);
 }
-#gameOver h2 { color: #ff0000; font-size: 48px; margin-bottom: 20px; }
-#gameOver p { color: #fff; font-size: 24px; margin: 10px 0; }
+#gameOver h2 { font-size: 42px; margin-bottom: 20px; }
+#gameOver p { color: #fff; font-size: 22px; margin: 10px 0; }
 #gameOver button {
-    background: #00ff88; color: #000; border: none; padding: 15px 40px;
-    font-size: 20px; cursor: pointer; margin-top: 20px;
+    background: #00ff88; color: #000; border: none; padding: 14px 40px;
+    font-size: 18px; cursor: pointer; margin-top: 20px;
+    font-family: 'Segoe UI', Arial, sans-serif;
+}
+#controls-help {
+    position: absolute; bottom: 20px; left: 20px;
+    color: rgba(255,255,255,0.6); font-size: 12px;
+    text-shadow: 0 0 5px #000;
 }
 </style>
 </head>
@@ -156,42 +196,45 @@ body { overflow: hidden; font-family: 'Arial', sans-serif; background: #000; }
 
 <div id="mainMenu">
     <h1>ТАКТИЧЕСКИЙ СИМУЛЯТОР ПВО</h1>
-    <button class="menuBtn" id="btnTrainingAA">Обучение ПВО</button>
-    <button class="menuBtn" id="btnTrainingDrone">Обучение Дрон</button>
-    <button class="menuBtn" id="btnBattle">Масштабная битва</button>
-    <button class="menuBtn" id="btnShop">Магазин</button>
+    <div class="subtitle">DRONES WAR</div>
+    <button class="menuBtn" id="btnTrainingAA"> Обучение ПВО</button>
+    <button class="menuBtn" id="btnTrainingDrone">✈️ Обучение Дрон</button>
+    <button class="menuBtn" id="btnBattle">⚔️ Масштабная битва</button>
+    <button class="menuBtn" id="btnShop">🛒 Магазин</button>
 </div>
 
 <div id="shopMenu">
-    <h2>МАГАЗИН</h2>
+    <h2>🛒 МАГАЗИН</h2>
     <div class="shopItem">
-        <span>Улучшенные пушки ПВО (+50% урона)</span>
-        <button id="buyAAGun">500 кредитов</button>
+        <span>🔫 Улучшенные пушки ПВО (+50% урона)</span>
+        <button id="buyAAGun">500 кр.</button>
     </div>
     <div class="shopItem">
-        <span>Ракетное ПВО (самонаведение)</span>
-        <button id="buyAAMissile">1000 кредитов</button>
+        <span>🚀 Ракетное ПВО (самонаведение)</span>
+        <button id="buyAAMissile">1000 кр.</button>
     </div>
     <div class="shopItem">
-        <span>Разведчик (быстрый дрон)</span>
-        <button id="buyScout">300 кредитов</button>
+        <span>🔍 Разведчик (быстрый дрон)</span>
+        <button id="buyScout">300 кр.</button>
     </div>
     <div class="shopItem">
-        <span>Ударный дрон (Bayraktar)</span>
-        <button id="buyStrike">800 кредитов</button>
+        <span>💣 Ударный дрон (Bayraktar)</span>
+        <button id="buyStrike">800 кр.</button>
     </div>
     <div class="shopItem">
-        <span>FPV-камикадзе</span>
-        <button id="buyFPV">400 кредитов</button>
+        <span>🎯 FPV-камикадзе</span>
+        <button id="buyFPV">400 кр.</button>
     </div>
-    <button class="menuBtn" id="btnCloseShop" style="margin-top: 20px;">Закрыть</button>
+    <button class="menuBtn" id="btnCloseShop" style="margin-top: 20px; min-width: 200px;">Закрыть</button>
 </div>
 
 <div id="hud">
-    <div id="credits">Кредиты: <span id="creditsValue">0</span></div>
+    <button id="exitBtn">⏻ Выход в меню</button>
+    <button id="pauseBtn">⏸ Пауза (B)</button>
+    <div id="credits">💰 <span id="creditsValue">0</span></div>
     <div id="timer">10:00</div>
     <div id="baseHP"><div id="baseHPBar"></div></div>
-    <div id="minimap"><canvas id="minimapCanvas" width="200" height="200"></canvas></div>
+    <div id="minimap"><canvas id="minimapCanvas" width="180" height="180"></canvas></div>
     
     <div id="aaCrosshair"></div>
     <div id="heatBar"><div id="heatBarFill"></div></div>
@@ -205,11 +248,15 @@ body { overflow: hidden; font-family: 'Arial', sans-serif; background: #000; }
         <div id="fpvCrosshair"></div>
     </div>
     
-    <div id="lives">Жизни: <span id="livesValue">3</span></div>
+    <div id="lives">❤️ Жизни: <span id="livesValue">3</span></div>
+    
+    <div id="controls-help">
+        МЫШЬ - прицел | ЛКМ - огонь | C - камера | B - магазин | ESC - меню
+    </div>
 </div>
 
 <div id="gameOver">
-    <h2>ИГРА ОКОНЧЕНА</h2>
+    <h2 id="gameOverTitle">ИГРА ОКОНЧЕНА</h2>
     <p id="gameOverText"></p>
     <button id="btnMainMenu">В главное меню</button>
 </div>
@@ -219,44 +266,51 @@ body { overflow: hidden; font-family: 'Arial', sans-serif; background: #000; }
 let scene, camera, renderer, clock;
 let player, playerType = 'aa';
 let enemies = [], allies = [], projectiles = [], explosions = [];
-let keys = {}, mouse = { x: 0, y: 0, locked: false };
+let keys = {}, mouse = { x: 0, y: 0 };
 let gameState = 'menu';
 let gameMode = '';
 let credits = 0, lives = 3, gameTime = 600;
 let baseBlue, baseRed;
-let terrain, trees = [];
+let terrain;
 let cameraShake = 0;
 let upgrades = { aa_gun: false, aa_missile: false, drone_scout: false, drone_strike: false, drone_fpv: false };
+let cameraMode = 0; // 0 = third person, 1 = first person
+let aaPitch = 0, aaYaw = 0;
 
 function initThree() {
     scene = new THREE.Scene();
     scene.background = new THREE.Color(0x87ceeb);
-    scene.fog = new THREE.Fog(0x87ceeb, 100, 5000);
+    scene.fog = new THREE.FogExp2(0x87ceeb, 0.00015);
     
-    camera = new THREE.PerspectiveCamera(75, window.innerWidth / window.innerHeight, 0.1, 10000);
-    camera.position.set(0, 50, 100);
+    camera = new THREE.PerspectiveCamera(75, window.innerWidth / window.innerHeight, 0.1, 15000);
+    camera.position.set(0, 80, 150);
     
     renderer = new THREE.WebGLRenderer({ antialias: true });
     renderer.setSize(window.innerWidth, window.innerHeight);
     renderer.shadowMap.enabled = true;
     renderer.shadowMap.type = THREE.PCFSoftShadowMap;
+    renderer.toneMapping = THREE.ACESFilmicToneMapping;
+    renderer.toneMappingExposure = 1.0;
     document.body.appendChild(renderer.domElement);
     
-    const ambientLight = new THREE.AmbientLight(0xffffff, 0.6);
+    const ambientLight = new THREE.AmbientLight(0x8899bb, 0.5);
     scene.add(ambientLight);
     
-    const sunLight = new THREE.DirectionalLight(0xffffff, 1);
-    sunLight.position.set(500, 1000, 500);
+    const sunLight = new THREE.DirectionalLight(0xffeedd, 1.2);
+    sunLight.position.set(1000, 2000, 500);
     sunLight.castShadow = true;
     sunLight.shadow.mapSize.width = 2048;
     sunLight.shadow.mapSize.height = 2048;
-    sunLight.shadow.camera.near = 0.5;
-    sunLight.shadow.camera.far = 5000;
-    sunLight.shadow.camera.left = -1000;
-    sunLight.shadow.camera.right = 1000;
-    sunLight.shadow.camera.top = 1000;
-    sunLight.shadow.camera.bottom = -1000;
+    sunLight.shadow.camera.near = 1;
+    sunLight.shadow.camera.far = 8000;
+    sunLight.shadow.camera.left = -2000;
+    sunLight.shadow.camera.right = 2000;
+    sunLight.shadow.camera.top = 2000;
+    sunLight.shadow.camera.bottom = -2000;
     scene.add(sunLight);
+    
+    const hemiLight = new THREE.HemisphereLight(0x87ceeb, 0x2d5016, 0.3);
+    scene.add(hemiLight);
     
     clock = new THREE.Clock();
     
@@ -269,37 +323,45 @@ function initThree() {
 
 function createTerrain() {
     const size = 10000;
-    const segments = 100;
+    const segments = 128;
     const geometry = new THREE.PlaneGeometry(size, size, segments, segments);
     
     const vertices = geometry.attributes.position.array;
     for (let i = 0; i < vertices.length; i += 3) {
         const x = vertices[i];
         const y = vertices[i + 1];
-        vertices[i + 2] = Math.sin(x * 0.01) * 20 + Math.cos(y * 0.01) * 20 + 
-                          Math.sin(x * 0.005 + y * 0.005) * 40;
+        vertices[i + 2] = Math.sin(x * 0.008) * 30 + Math.cos(y * 0.008) * 30 + 
+                          Math.sin(x * 0.003 + y * 0.003) * 60 +
+                          Math.sin(x * 0.02) * 5 + Math.cos(y * 0.02) * 5;
     }
     geometry.computeVertexNormals();
     
+    // Нормальная текстура без черного фона
     const canvas = document.createElement('canvas');
     canvas.width = 512;
     canvas.height = 512;
     const ctx = canvas.getContext('2d');
     
-    for (let i = 0; i < 10000; i++) {
+    // Зеленый фон
+    ctx.fillStyle = '#3a6b24';
+    ctx.fillRect(0, 0, 512, 512);
+    
+    // Трава
+    for (let i = 0; i < 20000; i++) {
         const x = Math.random() * 512;
         const y = Math.random() * 512;
-        const color = Math.random();
-        if (color < 0.6) ctx.fillStyle = '#2d5016';
-        else if (color < 0.85) ctx.fillStyle = '#4a3728';
-        else ctx.fillStyle = '#6b6b6b';
-        ctx.fillRect(x, y, 2 + Math.random() * 3, 2 + Math.random() * 3);
+        const shade = Math.random();
+        if (shade < 0.4) ctx.fillStyle = `rgb(${40+Math.random()*30}, ${80+Math.random()*40}, ${20+Math.random()*20})`;
+        else if (shade < 0.7) ctx.fillStyle = `rgb(${60+Math.random()*40}, ${100+Math.random()*50}, ${30+Math.random()*20})`;
+        else if (shade < 0.9) ctx.fillStyle = `rgb(${80+Math.random()*30}, ${70+Math.random()*30}, ${40+Math.random()*20})`;
+        else ctx.fillStyle = `rgb(${100+Math.random()*50}, ${90+Math.random()*40}, ${70+Math.random()*30})`;
+        ctx.fillRect(x, y, 1 + Math.random() * 4, 1 + Math.random() * 4);
     }
     
     const texture = new THREE.CanvasTexture(canvas);
     texture.wrapS = THREE.RepeatWrapping;
     texture.wrapT = THREE.RepeatWrapping;
-    texture.repeat.set(50, 50);
+    texture.repeat.set(80, 80);
     
     const material = new THREE.MeshLambertMaterial({ map: texture });
     terrain = new THREE.Mesh(geometry, material);
@@ -309,69 +371,87 @@ function createTerrain() {
 }
 
 function createTrees() {
-    for (let i = 0; i < 200; i++) {
-        const x = (Math.random() - 0.5) * 8000;
-        const z = (Math.random() - 0.5) * 8000;
+    const trunkGeo = new THREE.CylinderGeometry(0.5, 0.8, 8, 8);
+    const trunkMat = new THREE.MeshLambertMaterial({ color: 0x4a3728 });
+    const leavesGeo = new THREE.ConeGeometry(4, 10, 8);
+    const leavesMat = new THREE.MeshLambertMaterial({ color: 0x1a4a10 });
+    
+    for (let i = 0; i < 300; i++) {
+        const x = (Math.random() - 0.5) * 9000;
+        const z = (Math.random() - 0.5) * 9000;
+        
+        // Не ставим деревья рядом с базами
+        if (Math.abs(x + 4500) < 100 || Math.abs(x - 4500) < 100) continue;
+        
         const y = getTerrainHeight(x, z);
         
         const tree = new THREE.Group();
-        
-        const trunkGeo = new THREE.CylinderGeometry(0.5, 0.8, 8, 8);
-        const trunkMat = new THREE.MeshLambertMaterial({ color: 0x4a3728 });
         const trunk = new THREE.Mesh(trunkGeo, trunkMat);
         trunk.position.y = 4;
         trunk.castShadow = true;
         tree.add(trunk);
         
-        const leavesGeo = new THREE.SphereGeometry(4, 8, 8);
-        const leavesMat = new THREE.MeshLambertMaterial({ color: 0x2d5016 });
         const leaves = new THREE.Mesh(leavesGeo, leavesMat);
-        leaves.position.y = 10;
+        leaves.position.y = 12;
         leaves.castShadow = true;
         tree.add(leaves);
         
         tree.position.set(x, y, z);
+        const s = 0.8 + Math.random() * 0.6;
+        tree.scale.set(s, s, s);
         scene.add(tree);
-        trees.push(tree);
     }
 }
 
 function getTerrainHeight(x, z) {
-    return Math.sin(x * 0.01) * 20 + Math.cos(z * 0.01) * 20 + 
-           Math.sin(x * 0.005 + z * 0.005) * 40;
+    return Math.sin(x * 0.008) * 30 + Math.cos(z * 0.008) * 30 + 
+           Math.sin(x * 0.003 + z * 0.003) * 60 +
+           Math.sin(x * 0.02) * 5 + Math.cos(z * 0.02) * 5;
 }
 
 function createBase(x, z, color) {
     const base = new THREE.Group();
     
-    const baseGeo = new THREE.BoxGeometry(50, 10, 50);
+    // Основание
+    const baseGeo = new THREE.BoxGeometry(60, 12, 60);
     const baseMat = new THREE.MeshLambertMaterial({ color: color });
     const baseMesh = new THREE.Mesh(baseGeo, baseMat);
-    baseMesh.position.y = 5;
+    baseMesh.position.y = 6;
     baseMesh.castShadow = true;
     baseMesh.receiveShadow = true;
     base.add(baseMesh);
     
-    const towerGeo = new THREE.CylinderGeometry(8, 10, 20, 16);
+    // Башня
+    const towerGeo = new THREE.CylinderGeometry(10, 12, 25, 16);
     const towerMat = new THREE.MeshLambertMaterial({ color: color });
     const tower = new THREE.Mesh(towerGeo, towerMat);
-    tower.position.y = 20;
+    tower.position.y = 24;
     tower.castShadow = true;
     base.add(tower);
     
-    const flagPoleGeo = new THREE.CylinderGeometry(0.2, 0.2, 15, 8);
-    const flagPoleMat = new THREE.MeshLambertMaterial({ color: 0x333333 });
-    const flagPole = new THREE.Mesh(flagPoleGeo, flagPoleMat);
-    flagPole.position.y = 37.5;
-    base.add(flagPole);
+    // Купол
+    const domeGeo = new THREE.SphereGeometry(10, 16, 8, 0, Math.PI * 2, 0, Math.PI / 2);
+    const dome = new THREE.Mesh(domeGeo, towerMat);
+    dome.position.y = 36;
+    dome.castShadow = true;
+    base.add(dome);
     
-    const flagGeo = new THREE.PlaneGeometry(8, 5);
+    // Флагшток
+    const poleGeo = new THREE.CylinderGeometry(0.3, 0.3, 20, 8);
+    const poleMat = new THREE.MeshLambertMaterial({ color: 0x888888 });
+    const pole = new THREE.Mesh(poleGeo, poleMat);
+    pole.position.y = 46;
+    base.add(pole);
+    
+    // Флаг
+    const flagGeo = new THREE.PlaneGeometry(12, 7);
     const flagMat = new THREE.MeshLambertMaterial({ color: color, side: THREE.DoubleSide });
     const flag = new THREE.Mesh(flagGeo, flagMat);
-    flag.position.set(4, 40, 0);
+    flag.position.set(6, 50, 0);
     base.add(flag);
     
-    base.position.set(x, getTerrainHeight(x, z), z);
+    const y = getTerrainHeight(x, z);
+    base.position.set(x, y, z);
     base.userData = { hp: 1000, maxHp: 1000, type: 'base', color: color };
     scene.add(base);
     
@@ -381,54 +461,67 @@ function createBase(x, z, color) {
 function createAA(x, z, color, isPlayer = false) {
     const aa = new THREE.Group();
     
-    const baseGeo = new THREE.BoxGeometry(8, 3, 8);
-    const baseMat = new THREE.MeshLambertMaterial({ color: color });
-    const baseMesh = new THREE.Mesh(baseGeo, baseMat);
-    baseMesh.position.y = 1.5;
-    baseMesh.castShadow = true;
-    aa.add(baseMesh);
+    // Гусеничная база
+    const trackGeo = new THREE.BoxGeometry(10, 2, 14);
+    const trackMat = new THREE.MeshLambertMaterial({ color: 0x333333 });
+    const trackL = new THREE.Mesh(trackGeo, trackMat);
+    trackL.position.set(-4, 1, 0);
+    trackL.castShadow = true;
+    aa.add(trackL);
+    const trackR = new THREE.Mesh(trackGeo, trackMat);
+    trackR.position.set(4, 1, 0);
+    trackR.castShadow = true;
+    aa.add(trackR);
     
+    // Корпус
+    const bodyGeo = new THREE.BoxGeometry(8, 3, 12);
+    const bodyMat = new THREE.MeshLambertMaterial({ color: color });
+    const body = new THREE.Mesh(bodyGeo, bodyMat);
+    body.position.y = 3.5;
+    body.castShadow = true;
+    aa.add(body);
+    
+    // Башня
     const turret = new THREE.Group();
-    const turretGeo = new THREE.CylinderGeometry(2, 2.5, 2, 16);
+    const turretGeo = new THREE.CylinderGeometry(3, 3.5, 2.5, 16);
     const turretMat = new THREE.MeshLambertMaterial({ color: color });
     const turretMesh = new THREE.Mesh(turretGeo, turretMat);
-    turretMesh.position.y = 1;
+    turretMesh.position.y = 1.2;
     turretMesh.castShadow = true;
     turret.add(turretMesh);
     
-    const radarGeo = new THREE.BoxGeometry(0.5, 3, 0.5);
-    const radarMat = new THREE.MeshLambertMaterial({ color: 0x333333 });
-    const radar = new THREE.Mesh(radarGeo, radarMat);
-    radar.position.set(0, 3.5, 0);
-    radar.castShadow = true;
-    turret.add(radar);
-    
-    const barrelGeo = new THREE.CylinderGeometry(0.3, 0.3, 6, 8);
-    const barrelMat = new THREE.MeshLambertMaterial({ color: 0x333333 });
+    // Ствол
+    const barrelGeo = new THREE.CylinderGeometry(0.4, 0.4, 8, 8);
+    const barrelMat = new THREE.MeshLambertMaterial({ color: 0x222222 });
     const barrel = new THREE.Mesh(barrelGeo, barrelMat);
     barrel.rotation.x = Math.PI / 2;
-    barrel.position.set(0, 1, 3);
+    barrel.position.set(0, 1.5, 4);
     barrel.castShadow = true;
     turret.add(barrel);
     
-    turret.position.y = 3;
+    // Радар
+    const radarGeo = new THREE.BoxGeometry(0.3, 4, 0.3);
+    const radarMat = new THREE.MeshLambertMaterial({ color: 0x444444 });
+    const radar = new THREE.Mesh(radarGeo, radarMat);
+    radar.position.set(0, 3.5, -1);
+    turret.add(radar);
+    
+    const radarDish = new THREE.Mesh(
+        new THREE.BoxGeometry(3, 2, 0.2),
+        new THREE.MeshLambertMaterial({ color: 0x555555 })
+    );
+    radarDish.position.set(0, 4.5, -1);
+    turret.add(radarDish);
+    
+    turret.position.y = 5;
     aa.add(turret);
     
     const y = getTerrainHeight(x, z);
     aa.position.set(x, y, z);
     aa.userData = { 
-        type: 'aa', 
-        hp: 200, 
-        maxHp: 200, 
-        turret: turret,
-        barrel: barrel,
-        target: null,
-        fireRate: 0.1,
-        lastFire: 0,
-        heat: 0,
-        ammo: 100,
-        color: color,
-        isPlayer: isPlayer
+        type: 'aa', hp: 200, maxHp: 200, turret: turret, barrel: barrel,
+        fireRate: 0.15, lastFire: 0, heat: 0, ammo: 100,
+        color: color, isPlayer: isPlayer
     };
     
     scene.add(aa);
@@ -438,75 +531,67 @@ function createAA(x, z, color, isPlayer = false) {
 function createDrone(x, y, z, color, type = 'scout') {
     const drone = new THREE.Group();
     
-    let bodyColor = 0x888888;
-    let speed = 50;
-    let hp = 50;
-    let bombs = 0;
+    let bodyColor, speed, hp, bombs;
+    if (type === 'scout') { bodyColor = 0xaaaaaa; speed = 80; hp = 30; bombs = 0; }
+    else if (type === 'strike') { bodyColor = 0x556655; speed = 40; hp = 150; bombs = 4; }
+    else { bodyColor = 0xcc3333; speed = 100; hp = 20; bombs = 0; }
     
-    if (type === 'scout') {
-        bodyColor = 0xaaaaaa;
-        speed = 80;
-        hp = 30;
-    } else if (type === 'strike') {
-        bodyColor = 0x666666;
-        speed = 40;
-        hp = 150;
-        bombs = 4;
-    } else if (type === 'fpv') {
-        bodyColor = 0xff4444;
-        speed = 100;
-        hp = 20;
-    }
-    
-    const bodyGeo = new THREE.BoxGeometry(2, 0.5, 4);
-    const bodyMat = new THREE.MeshPhongMaterial({ color: bodyColor, shininess: 100 });
+    // Корпус
+    const bodyGeo = new THREE.BoxGeometry(1.5, 0.6, 5);
+    const bodyMat = new THREE.MeshPhongMaterial({ color: bodyColor, shininess: 80 });
     const body = new THREE.Mesh(bodyGeo, bodyMat);
     body.castShadow = true;
     drone.add(body);
     
-    const wingGeo = new THREE.BoxGeometry(6, 0.2, 1);
-    const wingMat = new THREE.MeshPhongMaterial({ color: bodyColor, shininess: 100 });
+    // Крылья
+    const wingGeo = new THREE.BoxGeometry(8, 0.15, 1.5);
+    const wingMat = new THREE.MeshPhongMaterial({ color: bodyColor, shininess: 80 });
     const wings = new THREE.Mesh(wingGeo, wingMat);
     wings.position.y = 0.1;
     wings.castShadow = true;
     drone.add(wings);
     
-    const tailGeo = new THREE.BoxGeometry(2, 0.2, 0.5);
-    const tail = new THREE.Mesh(tailGeo, wingMat);
-    tail.position.set(0, 0.1, -2);
-    tail.castShadow = true;
-    drone.add(tail);
+    // Хвостовое оперение
+    const tailV = new THREE.Mesh(
+        new THREE.BoxGeometry(0.15, 1.5, 1),
+        wingMat
+    );
+    tailV.position.set(0, 0.8, -2.2);
+    drone.add(tailV);
     
-    const antennaGeo = new THREE.CylinderGeometry(0.05, 0.05, 1, 8);
-    const antennaMat = new THREE.MeshLambertMaterial({ color: 0x333333 });
-    const antenna = new THREE.Mesh(antennaGeo, antennaMat);
-    antenna.position.set(0, 0.75, 0);
+    const tailH = new THREE.Mesh(
+        new THREE.BoxGeometry(2.5, 0.15, 0.8),
+        wingMat
+    );
+    tailH.position.set(0, 0.1, -2.2);
+    drone.add(tailH);
+    
+    // Антенна
+    const antenna = new THREE.Mesh(
+        new THREE.CylinderGeometry(0.05, 0.05, 1.2, 6),
+        new THREE.MeshLambertMaterial({ color: 0x222222 })
+    );
+    antenna.position.set(0, 0.9, 0.5);
     drone.add(antenna);
     
+    // Бомбы
     if (bombs > 0) {
         for (let i = 0; i < bombs; i++) {
-            const bombGeo = new THREE.SphereGeometry(0.3, 8, 8);
-            const bombMat = new THREE.MeshLambertMaterial({ color: 0x333333 });
-            const bomb = new THREE.Mesh(bombGeo, bombMat);
-            bomb.position.set((i % 2) * 2 - 1, -0.5, (Math.floor(i / 2)) * 1.5 - 0.75);
+            const bomb = new THREE.Mesh(
+                new THREE.CylinderGeometry(0.2, 0.2, 0.8, 6),
+                new THREE.MeshLambertMaterial({ color: 0x333333 })
+            );
+            bomb.rotation.x = Math.PI / 2;
+            bomb.position.set((i % 2) * 1.5 - 0.75, -0.5, (Math.floor(i/2)) * 1.2 - 0.3);
             drone.add(bomb);
         }
     }
     
     drone.position.set(x, y, z);
     drone.userData = {
-        type: 'drone',
-        droneType: type,
-        hp: hp,
-        maxHp: hp,
-        speed: speed,
-        bombs: bombs,
-        color: color,
-        velocity: new THREE.Vector3(0, 0, -speed),
-        targetAltitude: y,
-        roll: 0,
-        pitch: 0,
-        isPlayer: false
+        type: 'drone', droneType: type, hp: hp, maxHp: hp,
+        speed: speed, bombs: bombs, color: color,
+        roll: 0, pitch: 0, isPlayer: false
     };
     
     scene.add(drone);
@@ -516,66 +601,95 @@ function createDrone(x, y, z, color, type = 'scout') {
 function createExplosion(x, y, z, size = 1) {
     const explosion = new THREE.Group();
     
-    const fireGeo = new THREE.SphereGeometry(size * 5, 16, 16);
-    const fireMat = new THREE.MeshBasicMaterial({ 
-        color: 0xff6600, 
-        transparent: true, 
-        opacity: 0.8 
-    });
-    const fire = new THREE.Mesh(fireGeo, fireMat);
+    const fireMat = new THREE.MeshBasicMaterial({ color: 0xff6600, transparent: true, opacity: 0.9 });
+    const fire = new THREE.Mesh(new THREE.SphereGeometry(size * 4, 12, 12), fireMat);
     explosion.add(fire);
     
-    const smokeGeo = new THREE.SphereGeometry(size * 8, 16, 16);
-    const smokeMat = new THREE.MeshBasicMaterial({ 
-        color: 0x333333, 
-        transparent: true, 
-        opacity: 0.5 
-    });
-    const smoke = new THREE.Mesh(smokeGeo, smokeMat);
+    const smokeMat = new THREE.MeshBasicMaterial({ color: 0x444444, transparent: true, opacity: 0.6 });
+    const smoke = new THREE.Mesh(new THREE.SphereGeometry(size * 7, 12, 12), smokeMat);
     explosion.add(smoke);
     
-    for (let i = 0; i < 20; i++) {
-        const sparkGeo = new THREE.SphereGeometry(0.2, 4, 4);
-        const sparkMat = new THREE.MeshBasicMaterial({ color: 0xffff00 });
-        const spark = new THREE.Mesh(sparkGeo, sparkMat);
+    for (let i = 0; i < 30; i++) {
+        const spark = new THREE.Mesh(
+            new THREE.SphereGeometry(0.15 + Math.random() * 0.2, 4, 4),
+            new THREE.MeshBasicMaterial({ color: Math.random() > 0.5 ? 0xffff00 : 0xff8800 })
+        );
         spark.position.set(
-            (Math.random() - 0.5) * size * 10,
-            (Math.random() - 0.5) * size * 10,
-            (Math.random() - 0.5) * size * 10
+            (Math.random() - 0.5) * size * 8,
+            (Math.random() - 0.5) * size * 8,
+            (Math.random() - 0.5) * size * 8
         );
         spark.userData.velocity = new THREE.Vector3(
-            (Math.random() - 0.5) * 50,
-            Math.random() * 50,
-            (Math.random() - 0.5) * 50
+            (Math.random() - 0.5) * 60,
+            Math.random() * 60,
+            (Math.random() - 0.5) * 60
         );
         explosion.add(spark);
     }
     
     explosion.position.set(x, y, z);
-    explosion.userData = { life: 2, maxLife: 2, size: size };
+    explosion.userData = { life: 2.5, maxLife: 2.5, size: size };
     scene.add(explosion);
     explosions.push(explosion);
     
-    cameraShake = Math.max(cameraShake, size * 0.5);
-    
-    return explosion;
+    cameraShake = Math.max(cameraShake, size * 0.8);
 }
 
 function createTracer(start, end, color = 0xffff00) {
-    const material = new THREE.LineBasicMaterial({ color: color });
-    const points = [start, end];
-    const geometry = new THREE.BufferGeometry().setFromPoints(points);
+    const material = new THREE.LineBasicMaterial({ color: color, linewidth: 2 });
+    const geometry = new THREE.BufferGeometry().setFromPoints([start, end]);
     const line = new THREE.Line(geometry, material);
-    line.userData = { life: 0.5 };
+    line.userData = { life: 0.4 };
     scene.add(line);
     projectiles.push(line);
-    return line;
 }
 
-window.startGame = function(mode) {
+// ===================== УПРАВЛЕНИЕ КНОПКАМИ =====================
+
+document.getElementById('btnTrainingAA').addEventListener('click', () => startGame('training_aa'));
+document.getElementById('btnTrainingDrone').addEventListener('click', () => startGame('training_drone'));
+document.getElementById('btnBattle').addEventListener('click', () => startGame('battle'));
+document.getElementById('btnShop').addEventListener('click', () => toggleShop());
+document.getElementById('btnCloseShop').addEventListener('click', () => toggleShop());
+document.getElementById('btnMainMenu').addEventListener('click', () => location.reload());
+
+document.getElementById('exitBtn').addEventListener('click', () => exitToMenu());
+document.getElementById('pauseBtn').addEventListener('click', () => toggleShop());
+
+document.getElementById('buyAAGun').addEventListener('click', () => buyUpgrade('aa_gun', 500));
+document.getElementById('buyAAMissile').addEventListener('click', () => buyUpgrade('aa_missile', 1000));
+document.getElementById('buyScout').addEventListener('click', () => buyUpgrade('drone_scout', 300));
+document.getElementById('buyStrike').addEventListener('click', () => buyUpgrade('drone_strike', 800));
+document.getElementById('buyFPV').addEventListener('click', () => buyUpgrade('drone_fpv', 400));
+
+function exitToMenu() {
+    gameState = 'menu';
+    document.exitPointerLock();
+    document.getElementById('hud').style.display = 'none';
+    document.getElementById('mainMenu').style.display = 'flex';
+    document.getElementById('gameOver').style.display = 'none';
+    
+    // Очистка сцены
+    while(scene.children.length > 0) scene.remove(scene.children[0]);
+    enemies = []; allies = []; projectiles = []; explosions = [];
+    player = null;
+}
+
+// ===================== ИГРА =====================
+
+function startGame(mode) {
     gameMode = mode;
     document.getElementById('mainMenu').style.display = 'none';
     document.getElementById('hud').style.display = 'block';
+    document.getElementById('exitBtn').style.display = 'block';
+    document.getElementById('pauseBtn').style.display = 'block';
+    
+    // Сброс
+    enemies = []; allies = []; projectiles = []; explosions = [];
+    credits = 0; lives = 3; gameTime = 600;
+    mouse.x = 0; mouse.y = 0;
+    aaPitch = 0; aaYaw = 0;
+    cameraMode = 0;
     
     initThree();
     createTerrain();
@@ -594,155 +708,167 @@ window.startGame = function(mode) {
         document.getElementById('aaCrosshair').style.display = 'block';
         document.getElementById('heatBar').style.display = 'block';
         document.getElementById('ammoCount').style.display = 'block';
+        document.getElementById('fpvHUD').style.display = 'none';
+        document.getElementById('lives').style.display = 'none';
     } else if (mode === 'training_drone') {
         playerType = 'drone';
-        player = createDrone(4000, 100, 0, 0xff0000, 'strike');
+        player = createDrone(-3500, 150, 0, 0x0066ff, 'strike');
         player.userData.isPlayer = true;
-        enemies.push(player);
+        allies.push(player);
         lives = 3;
         document.getElementById('fpvHUD').style.display = 'block';
         document.getElementById('lives').style.display = 'block';
+        document.getElementById('aaCrosshair').style.display = 'none';
+        document.getElementById('heatBar').style.display = 'none';
+        document.getElementById('ammoCount').style.display = 'none';
     }
     
     if (mode === 'battle') {
         for (let i = 0; i < 5; i++) {
-            const aa = createAA(-4000 + Math.random() * 500, Math.random() * 500 - 250, 0x0066ff);
+            const aa = createAA(-4200 + Math.random() * 400, (Math.random() - 0.5) * 600, 0x0066ff);
             allies.push(aa);
         }
-        
         for (let i = 0; i < 5; i++) {
-            const aa = createAA(4000 - Math.random() * 500, Math.random() * 500 - 250, 0xff0000);
+            const aa = createAA(4200 - Math.random() * 400, (Math.random() - 0.5) * 600, 0xff0000);
             enemies.push(aa);
         }
-        
-        for (let i = 0; i < 8; i++) {
-            const drone = createDrone(-3500 + Math.random() * 500, 100 + Math.random() * 100, Math.random() * 1000 - 500, 0x0066ff, 'strike');
-            allies.push(drone);
+        for (let i = 0; i < 6; i++) {
+            const d = createDrone(-3500 + Math.random() * 300, 120 + Math.random() * 80, (Math.random()-0.5)*800, 0x0066ff, 'strike');
+            allies.push(d);
         }
-        
-        for (let i = 0; i < 8; i++) {
-            const drone = createDrone(3500 - Math.random() * 500, 100 + Math.random() * 100, Math.random() * 1000 - 500, 0xff0000, 'strike');
-            enemies.push(drone);
+        for (let i = 0; i < 6; i++) {
+            const d = createDrone(3500 - Math.random() * 300, 120 + Math.random() * 80, (Math.random()-0.5)*800, 0xff0000, 'strike');
+            enemies.push(d);
         }
     } else if (mode === 'training_aa') {
-        for (let i = 0; i < 5; i++) {
-            const drone = createDrone(4000 - i * 500, 100, Math.random() * 200 - 100, 0xff0000, 'scout');
-            enemies.push(drone);
+        for (let i = 0; i < 8; i++) {
+            const d = createDrone(3000 + Math.random() * 1500, 80 + Math.random() * 120, (Math.random()-0.5)*1000, 0xff0000, 'scout');
+            enemies.push(d);
         }
     } else if (mode === 'training_drone') {
-        for (let i = 0; i < 3; i++) {
-            const aa = createAA(-3000 + i * 500, 0, 0x0066ff);
-            allies.push(aa);
+        for (let i = 0; i < 4; i++) {
+            const aa = createAA(-3500 + i * 400, 0, 0xff0000);
+            enemies.push(aa);
         }
     }
     
     gameState = 'playing';
     setupControls();
     animate();
-};
+}
 
 function setupControls() {
-    document.addEventListener('keydown', (e) => {
+    document.onkeydown = (e) => {
         keys[e.key.toLowerCase()] = true;
         
-        if (e.key.toLowerCase() === 'c') {
-            if (camera.position.distanceTo(player.position) > 10) {
-                camera.position.copy(player.position);
-            } else {
-                camera.position.set(
-                    player.position.x,
-                    player.position.y + 10,
-                    player.position.z + 20
-                );
+        if (e.key.toLowerCase() === 'c' && player) {
+            cameraMode = 1 - cameraMode;
+        }
+        if (e.key.toLowerCase() === 'b' && gameState === 'playing') {
+            toggleShop();
+        }
+        if (e.key === 'Escape') {
+            if (gameState === 'playing') {
+                exitToMenu();
             }
         }
-        
-        if (e.key.toLowerCase() === 'b' && gameState === 'playing') {
-            window.toggleShop();
-        }
-    });
+    };
     
-    document.addEventListener('keyup', (e) => {
+    document.onkeyup = (e) => {
         keys[e.key.toLowerCase()] = false;
-    });
+    };
     
-    document.addEventListener('mousemove', (e) => {
+    document.onmousemove = (e) => {
         if (document.pointerLockElement) {
-            mouse.x += e.movementX * 0.002;
-            mouse.y += e.movementY * 0.002;
-            mouse.y = Math.max(-Math.PI / 2, Math.min(Math.PI / 2, mouse.y));
+            mouse.x += e.movementX * 0.003;
+            mouse.y += e.movementY * 0.003;
+            // Разрешаем смотреть вверх и вниз без жестких ограничений
+            mouse.y = Math.max(-1.5, Math.min(1.5, mouse.y));
         }
-    });
+    };
     
-    document.addEventListener('click', () => {
+    document.onclick = () => {
         if (gameState === 'playing' && !document.pointerLockElement) {
             renderer.domElement.requestPointerLock();
         } else if (gameState === 'playing' && document.pointerLockElement) {
-            if (playerType === 'aa') {
-                playerShoot();
-            } else if (playerType === 'drone') {
-                playerDropBomb();
-            }
+            if (playerType === 'aa') playerShoot();
+            else if (playerType === 'drone') playerDropBomb();
         }
-    });
+    };
 }
 
 function playerShoot() {
-    if (player.userData.ammo <= 0 || player.userData.heat >= 100) return;
+    if (!player || player.userData.ammo <= 0 || player.userData.heat >= 100) return;
     
     const now = Date.now() / 1000;
     if (now - player.userData.lastFire < player.userData.fireRate) return;
     
     player.userData.lastFire = now;
     player.userData.ammo--;
-    player.userData.heat = Math.min(100, player.userData.heat + 5);
+    player.userData.heat = Math.min(100, player.userData.heat + 8);
     
-    const direction = new THREE.Vector3(0, 0, 1);
-    direction.applyQuaternion(player.userData.turret.quaternion);
-    direction.applyQuaternion(player.quaternion);
+    // Направление от башни
+    const turret = player.userData.turret;
+    const dir = new THREE.Vector3(0, 0, 1);
+    dir.applyQuaternion(turret.quaternion);
+    dir.applyQuaternion(player.quaternion);
+    dir.normalize();
     
-    const startPos = player.userData.turret.localToWorld(new THREE.Vector3(0, 1, 6));
-    const endPos = startPos.clone().add(direction.multiplyScalar(500));
+    const startPos = turret.localToWorld(new THREE.Vector3(0, 1.5, 8));
+    const endPos = startPos.clone().add(dir.clone().multiplyScalar(800));
     
-    createTracer(startPos, endPos, 0xffff00);
+    createTracer(startPos, endPos, 0xffff44);
     
-    const raycaster = new THREE.Raycaster(startPos, direction.normalize(), 0, 500);
-    const targets = enemies.filter(e => e.userData.type === 'drone' || e.userData.type === 'aa');
+    // Проверка попаданий
+    const raycaster = new THREE.Raycaster(startPos, dir, 0, 800);
+    const targets = enemies.filter(e => e.userData && (e.userData.type === 'drone' || e.userData.type === 'aa' || e.userData.type === 'base'));
     
-    targets.forEach(target => {
+    let hit = false;
+    for (const target of targets) {
         const intersects = raycaster.intersectObject(target, true);
         if (intersects.length > 0) {
-            const damage = upgrades.aa_gun ? 30 : 20;
+            const damage = upgrades.aa_gun ? 35 : 20;
             target.userData.hp -= damage;
+            hit = true;
             
             if (target.userData.hp <= 0) {
-                createExplosion(target.position.x, target.position.y, target.position.z, 2);
+                createExplosion(target.position.x, target.position.y + 5, target.position.z, 
+                    target.userData.type === 'base' ? 5 : 2);
                 scene.remove(target);
-                enemies.splice(enemies.indexOf(target), 1);
-                credits += target.userData.type === 'drone' ? 50 : 100;
+                const idx = enemies.indexOf(target);
+                if (idx >= 0) enemies.splice(idx, 1);
+                
+                if (target.userData.type === 'base') {
+                    if (target === baseRed) endGame(true, 'Вражеская база уничтожена!');
+                    else endGame(false, 'Ваша база уничтожена!');
+                } else {
+                    credits += target.userData.type === 'drone' ? 50 : 100;
+                }
             }
+            break;
         }
-    });
+    }
 }
 
 function playerDropBomb() {
-    if (player.userData.bombs <= 0) return;
-    
+    if (!player || player.userData.bombs <= 0) return;
     player.userData.bombs--;
     
-    const bomb = new THREE.Group();
-    const bombGeo = new THREE.SphereGeometry(0.5, 8, 8);
-    const bombMat = new THREE.MeshLambertMaterial({ color: 0x333333 });
-    const bombMesh = new THREE.Mesh(bombGeo, bombMat);
-    bomb.add(bombMesh);
-    
+    const bomb = new THREE.Mesh(
+        new THREE.SphereGeometry(0.6, 8, 8),
+        new THREE.MeshLambertMaterial({ color: 0x333333 })
+    );
     bomb.position.copy(player.position);
+    
+    const forward = new THREE.Vector3(0, 0, -1);
+    forward.applyQuaternion(player.quaternion);
+    
     bomb.userData = {
         type: 'bomb',
         velocity: new THREE.Vector3(
-            player.userData.velocity.x * 0.5,
-            -10,
-            player.userData.velocity.z * 0.5
+            forward.x * player.userData.speed * 0.3,
+            -5,
+            forward.z * player.userData.speed * 0.3
         ),
         owner: player.userData.color
     };
@@ -752,40 +878,47 @@ function playerDropBomb() {
 }
 
 function updatePlayer(delta) {
+    if (!player) return;
+    
     if (playerType === 'aa') {
-        player.rotation.y = -mouse.x;
+        // ПВО: мышь управляет башней
+        aaYaw = -mouse.x;
+        aaPitch = -mouse.y;
         
-        const turret = player.userData.turret;
-        turret.rotation.y = -mouse.x * 2;
-        turret.rotation.x = -mouse.y;
+        player.rotation.y = aaYaw;
+        player.userData.turret.rotation.y = aaYaw * 0.5;
+        player.userData.turret.rotation.x = aaPitch;
         
-        player.userData.heat = Math.max(0, player.userData.heat - delta * 10);
+        player.userData.heat = Math.max(0, player.userData.heat - delta * 15);
         
         document.getElementById('heatBarFill').style.width = player.userData.heat + '%';
         document.getElementById('ammoValue').textContent = player.userData.ammo;
         
+        // Камера за ПВО
+        if (cameraMode === 0) {
+            const offset = new THREE.Vector3(0, 25, 35);
+            offset.applyAxisAngle(new THREE.Vector3(0,1,0), player.rotation.y);
+            camera.position.lerp(player.position.clone().add(offset), 0.1);
+            camera.lookAt(player.position.clone().add(new THREE.Vector3(0, 10, 0)));
+        } else {
+            // Вид от первого лица - из башни
+            const turretPos = player.userData.turret.localToWorld(new THREE.Vector3(0, 3, 0));
+            camera.position.copy(turretPos);
+            camera.rotation.set(aaPitch, aaYaw + Math.PI, 0);
+        }
+        
     } else if (playerType === 'drone') {
         const speed = player.userData.speed;
         
-        if (keys['w'] || keys['arrowup']) {
-            player.userData.pitch = Math.min(0.5, player.userData.pitch + delta * 2);
-        } else if (keys['s'] || keys['arrowdown']) {
-            player.userData.pitch = Math.max(-0.5, player.userData.pitch - delta * 2);
-        } else {
-            player.userData.pitch *= 0.95;
-        }
+        if (keys['w'] || keys['arrowup']) player.userData.pitch = Math.min(0.6, player.userData.pitch + delta * 2.5);
+        else if (keys['s'] || keys['arrowdown']) player.userData.pitch = Math.max(-0.6, player.userData.pitch - delta * 2.5);
+        else player.userData.pitch *= 0.93;
         
-        if (keys['a'] || keys['arrowleft']) {
-            player.userData.roll = Math.min(0.8, player.userData.roll + delta * 2);
-        } else if (keys['d'] || keys['arrowright']) {
-            player.userData.roll = Math.max(-0.8, player.userData.roll - delta * 2);
-        } else {
-            player.userData.roll *= 0.95;
-        }
+        if (keys['a'] || keys['arrowleft']) player.userData.roll = Math.min(1.0, player.userData.roll + delta * 2.5);
+        else if (keys['d'] || keys['arrowright']) player.userData.roll = Math.max(-1.0, player.userData.roll - delta * 2.5);
+        else player.userData.roll *= 0.93;
         
-        const yaw = -player.userData.roll * delta * 2;
-        player.rotation.y += yaw;
-        
+        player.rotation.y += -player.userData.roll * delta * 1.5;
         player.rotation.x = player.userData.pitch;
         player.rotation.z = player.userData.roll;
         
@@ -793,45 +926,43 @@ function updatePlayer(delta) {
         forward.applyQuaternion(player.quaternion);
         player.position.add(forward.multiplyScalar(speed * delta));
         
-        if (keys['shift']) {
-            player.position.y += speed * delta * 0.5;
-        } else if (keys['control']) {
-            player.position.y -= speed * delta * 0.5;
-        }
+        if (keys['shift'] || keys[' ']) player.position.y += speed * delta * 0.4;
+        if (keys['control']) player.position.y -= speed * delta * 0.4;
         
-        if (player.position.y > 10) {
-            player.position.y -= 5 * delta;
-        }
+        // Легкая гравитация
+        if (player.position.y > 5) player.position.y -= 3 * delta;
         
-        const terrainHeight = getTerrainHeight(player.position.x, player.position.z);
-        if (player.position.y < terrainHeight + 2) {
+        const terrainH = getTerrainHeight(player.position.x, player.position.z);
+        if (player.position.y < terrainH + 3) {
             createExplosion(player.position.x, player.position.y, player.position.z, 3);
             lives--;
+            document.getElementById('livesValue').textContent = lives;
             
             if (lives <= 0) {
                 endGame(false, 'Все дроны уничтожены');
             } else {
-                player.position.set(4000, 100, 0);
+                player.position.set(-3500, 150, 0);
                 player.userData.hp = player.userData.maxHp;
                 player.userData.bombs = 4;
+                player.userData.pitch = 0;
+                player.userData.roll = 0;
             }
         }
         
         document.getElementById('speedIndicator').textContent = Math.round(speed * 3.6) + ' км/ч';
         document.getElementById('altitudeIndicator').textContent = Math.round(player.position.y) + ' м';
         document.getElementById('horizonInner').style.transform = 
-            `translateY(${-player.userData.pitch * 100}px) rotate(${-player.userData.roll}rad)`;
-        document.getElementById('livesValue').textContent = lives;
+            `translateY(${-player.userData.pitch * 80}px) rotate(${-player.userData.roll}rad)`;
         
-        camera.position.copy(player.position);
-        camera.rotation.copy(player.rotation);
-    }
-    
-    if (camera.position.distanceTo(player.position) > 10) {
-        const offset = new THREE.Vector3(0, 10, 20);
-        offset.applyQuaternion(player.quaternion);
-        camera.position.lerp(player.position.clone().add(offset), 0.1);
-        camera.lookAt(player.position);
+        if (cameraMode === 1) {
+            camera.position.copy(player.position);
+            camera.rotation.copy(player.rotation);
+        } else {
+            const offset = new THREE.Vector3(0, 8, 20);
+            offset.applyQuaternion(player.quaternion);
+            camera.position.lerp(player.position.clone().add(offset), 0.15);
+            camera.lookAt(player.position);
+        }
     }
 }
 
@@ -839,26 +970,29 @@ function updateDroneAI(drone, delta) {
     if (drone.userData.isPlayer) return;
     
     const speed = drone.userData.speed;
-    
     const targetBase = drone.userData.color === 0x0066ff ? baseRed : baseBlue;
-    const direction = targetBase.position.clone().sub(drone.position).normalize();
+    const dir = targetBase.position.clone().sub(drone.position).normalize();
     
-    const targetRotation = Math.atan2(direction.x, direction.z);
-    drone.rotation.y += (targetRotation - drone.rotation.y) * delta * 2;
+    const targetRot = Math.atan2(dir.x, dir.z);
+    let diff = targetRot - drone.rotation.y;
+    while (diff > Math.PI) diff -= Math.PI * 2;
+    while (diff < -Math.PI) diff += Math.PI * 2;
+    drone.rotation.y += diff * delta * 2;
     
     const forward = new THREE.Vector3(0, 0, -1);
     forward.applyQuaternion(drone.quaternion);
     drone.position.add(forward.multiplyScalar(speed * delta));
     
-    const targetAltitude = 100 + Math.sin(Date.now() * 0.001) * 20;
-    drone.position.y += (targetAltitude - drone.position.y) * delta;
+    const targetAlt = 100 + Math.sin(Date.now() * 0.0005 + drone.position.x) * 30;
+    drone.position.y += (targetAlt - drone.position.y) * delta * 0.5;
     
-    const terrainHeight = getTerrainHeight(drone.position.x, drone.position.z);
-    if (drone.position.y < terrainHeight + 2) {
+    const terrainH = getTerrainHeight(drone.position.x, drone.position.z);
+    if (drone.position.y < terrainH + 2) {
         createExplosion(drone.position.x, drone.position.y, drone.position.z, 2);
         scene.remove(drone);
-        const array = drone.userData.color === 0x0066ff ? allies : enemies;
-        array.splice(array.indexOf(drone), 1);
+        const arr = drone.userData.color === 0x0066ff ? allies : enemies;
+        const idx = arr.indexOf(drone);
+        if (idx >= 0) arr.splice(idx, 1);
     }
 }
 
@@ -866,57 +1000,50 @@ function updateAAAI(aa, delta) {
     if (aa.userData.isPlayer) return;
     
     const enemyList = aa.userData.color === 0x0066ff ? enemies : allies;
-    let closestEnemy = null;
-    let closestDist = Infinity;
+    let closest = null, closestDist = 600;
     
-    enemyList.forEach(enemy => {
+    for (const enemy of enemyList) {
+        if (!enemy.userData) continue;
         if (enemy.userData.type === 'drone' || enemy.userData.type === 'aa') {
             const dist = aa.position.distanceTo(enemy.position);
-            if (dist < closestDist && dist < 500) {
-                closestDist = dist;
-                closestEnemy = enemy;
-            }
+            if (dist < closestDist) { closestDist = dist; closest = enemy; }
         }
-    });
+    }
     
-    if (closestEnemy) {
-        const direction = closestEnemy.position.clone().sub(aa.position);
-        const targetRotation = Math.atan2(direction.x, direction.z);
-        aa.userData.turret.rotation.y += (targetRotation - aa.userData.turret.rotation.y) * delta * 3;
+    if (closest) {
+        const dir = closest.position.clone().sub(aa.position);
+        const targetRot = Math.atan2(dir.x, dir.z);
+        let diff = targetRot - aa.rotation.y;
+        while (diff > Math.PI) diff -= Math.PI * 2;
+        while (diff < -Math.PI) diff += Math.PI * 2;
+        aa.userData.turret.rotation.y += diff * delta * 3;
         
-        const pitch = Math.atan2(direction.y, Math.sqrt(direction.x * direction.x + direction.z * direction.z));
+        const pitch = Math.atan2(dir.y, Math.sqrt(dir.x*dir.x + dir.z*dir.z));
         aa.userData.turret.rotation.x += (pitch - aa.userData.turret.rotation.x) * delta * 3;
         
         const now = Date.now() / 1000;
         if (now - aa.userData.lastFire > aa.userData.fireRate) {
             aa.userData.lastFire = now;
             
-            const startPos = aa.userData.turret.localToWorld(new THREE.Vector3(0, 1, 6));
-            const endPos = closestEnemy.position.clone();
-            
+            const startPos = aa.userData.turret.localToWorld(new THREE.Vector3(0, 1.5, 8));
+            const endPos = closest.position.clone();
             createTracer(startPos, endPos, aa.userData.color === 0x0066ff ? 0x00ffff : 0xff6600);
             
-            if (Math.random() < 0.3) {
-                const damage = 20;
-                closestEnemy.userData.hp -= damage;
-                
-                if (closestEnemy.userData.hp <= 0) {
-                    createExplosion(closestEnemy.position.x, closestEnemy.position.y, closestEnemy.position.z, 2);
-                    scene.remove(closestEnemy);
-                    enemyList.splice(enemyList.indexOf(closestEnemy), 1);
+            if (Math.random() < 0.35) {
+                closest.userData.hp -= 15;
+                if (closest.userData.hp <= 0) {
+                    createExplosion(closest.position.x, closest.position.y + 3, closest.position.z, 2);
+                    scene.remove(closest);
+                    const idx = enemyList.indexOf(closest);
+                    if (idx >= 0) enemyList.splice(idx, 1);
                     
-                    if (closestEnemy === player) {
-                        if (playerType === 'drone') {
-                            lives--;
-                            if (lives <= 0) {
-                                endGame(false, 'Дрон уничтожен');
-                            } else {
-                                player.position.set(4000, 100, 0);
-                                player.userData.hp = player.userData.maxHp;
-                            }
-                        }
+                    if (closest === player && playerType === 'drone') {
+                        lives--;
+                        document.getElementById('livesValue').textContent = lives;
+                        if (lives <= 0) endGame(false, 'Дрон уничтожен');
+                        else { player.position.set(-3500, 150, 0); player.userData.hp = player.userData.maxHp; player.userData.bombs = 4; }
                     } else {
-                        credits += closestEnemy.userData.type === 'drone' ? 50 : 100;
+                        credits += closest.userData.type === 'drone' ? 50 : 100;
                     }
                 }
             }
@@ -929,66 +1056,54 @@ function updateProjectiles(delta) {
         const proj = projectiles[i];
         
         if (proj.userData.type === 'bomb') {
-            proj.userData.velocity.y -= 20 * delta;
+            proj.userData.velocity.y -= 25 * delta;
             proj.position.add(proj.userData.velocity.clone().multiplyScalar(delta));
             
-            const terrainHeight = getTerrainHeight(proj.position.x, proj.position.z);
-            if (proj.position.y < terrainHeight) {
-                createExplosion(proj.position.x, proj.position.y, proj.position.z, 2);
-                
-                const blastRadius = 30;
+            const terrainH = getTerrainHeight(proj.position.x, proj.position.z);
+            let exploded = false;
+            
+            if (proj.position.y < terrainH) exploded = true;
+            
+            if (!exploded) {
                 const allTargets = [...allies, ...enemies];
-                allTargets.forEach(target => {
+                for (const target of allTargets) {
+                    if (!target.userData) continue;
+                    if (target.userData.type === 'aa' || target.userData.type === 'base') {
+                        if (proj.position.distanceTo(target.position) < 15) {
+                            exploded = true;
+                            break;
+                        }
+                    }
+                }
+            }
+            
+            if (exploded) {
+                createExplosion(proj.position.x, Math.max(proj.position.y, terrainH), proj.position.z, 2.5);
+                
+                const blastRadius = 40;
+                const allTargets = [...allies, ...enemies];
+                for (const target of allTargets) {
+                    if (!target.userData) continue;
                     if (target.userData.type === 'aa' || target.userData.type === 'base') {
                         const dist = proj.position.distanceTo(target.position);
                         if (dist < blastRadius) {
-                            const damage = 100 * (1 - dist / blastRadius);
+                            const damage = 120 * (1 - dist / blastRadius);
                             target.userData.hp -= damage;
                             
                             if (target.userData.hp <= 0 && target.userData.type === 'base') {
-                                createExplosion(target.position.x, target.position.y, target.position.z, 5);
+                                createExplosion(target.position.x, target.position.y + 10, target.position.z, 6);
                                 scene.remove(target);
-                                
-                                if (target === baseRed) {
-                                    endGame(true, 'Вражеская база уничтожена!');
-                                } else if (target === baseBlue) {
-                                    endGame(false, 'Ваша база уничтожена!');
-                                }
+                                if (target === baseRed) endGame(true, 'Вражеская база уничтожена!');
+                                else if (target === baseBlue) endGame(false, 'Ваша база уничтожена!');
                             }
                         }
                     }
-                });
+                }
                 
                 scene.remove(proj);
                 projectiles.splice(i, 1);
                 continue;
             }
-            
-            const allTargets = [...allies, ...enemies];
-            allTargets.forEach(target => {
-                if (target.userData.type === 'aa' || target.userData.type === 'base') {
-                    const dist = proj.position.distanceTo(target.position);
-                    if (dist < 10) {
-                        createExplosion(proj.position.x, proj.position.y, proj.position.z, 2);
-                        const damage = 100;
-                        target.userData.hp -= damage;
-                        
-                        if (target.userData.hp <= 0 && target.userData.type === 'base') {
-                            createExplosion(target.position.x, target.position.y, target.position.z, 5);
-                            scene.remove(target);
-                            
-                            if (target === baseRed) {
-                                endGame(true, 'Вражеская база уничтожена!');
-                            } else if (target === baseBlue) {
-                                endGame(false, 'Ваша база уничтожена!');
-                            }
-                        }
-                        
-                        scene.remove(proj);
-                        projectiles.splice(i, 1);
-                    }
-                }
-            });
         } else if (proj.userData.life !== undefined) {
             proj.userData.life -= delta;
             if (proj.userData.life <= 0) {
@@ -1003,23 +1118,20 @@ function updateExplosions(delta) {
     for (let i = explosions.length - 1; i >= 0; i--) {
         const exp = explosions[i];
         exp.userData.life -= delta;
-        
         const progress = 1 - (exp.userData.life / exp.userData.maxLife);
         
-        const fire = exp.children[0];
-        fire.scale.setScalar(1 + progress * 2);
-        fire.material.opacity = 0.8 * (1 - progress);
+        exp.children[0].scale.setScalar(1 + progress * 3);
+        exp.children[0].material.opacity = 0.9 * (1 - progress);
         
-        const smoke = exp.children[1];
-        smoke.scale.setScalar(1 + progress * 3);
-        smoke.material.opacity = 0.5 * (1 - progress);
-        smoke.position.y += delta * 10;
+        exp.children[1].scale.setScalar(1 + progress * 4);
+        exp.children[1].material.opacity = 0.6 * (1 - progress);
+        exp.children[1].position.y += delta * 8;
         
         for (let j = 2; j < exp.children.length; j++) {
             const spark = exp.children[j];
             spark.position.add(spark.userData.velocity.clone().multiplyScalar(delta));
-            spark.userData.velocity.y -= 50 * delta;
-            spark.material.opacity = 1 - progress;
+            spark.userData.velocity.y -= 60 * delta;
+            spark.material.opacity = Math.max(0, 1 - progress * 1.5);
         }
         
         if (exp.userData.life <= 0) {
@@ -1032,100 +1144,96 @@ function updateExplosions(delta) {
 function updateMinimap() {
     const canvas = document.getElementById('minimapCanvas');
     const ctx = canvas.getContext('2d');
+    ctx.fillStyle = 'rgba(0,30,0,0.9)';
+    ctx.fillRect(0, 0, 180, 180);
     
-    ctx.fillStyle = 'rgba(0, 0, 0, 0.7)';
-    ctx.fillRect(0, 0, 200, 200);
+    const scale = 180 / 10000;
+    const ox = 90, oy = 90;
     
-    const scale = 200 / 10000;
-    const offsetX = 100;
-    const offsetY = 100;
+    // Сетка
+    ctx.strokeStyle = 'rgba(0,255,136,0.2)';
+    ctx.lineWidth = 0.5;
+    for (let i = 0; i < 180; i += 20) {
+        ctx.beginPath(); ctx.moveTo(i, 0); ctx.lineTo(i, 180); ctx.stroke();
+        ctx.beginPath(); ctx.moveTo(0, i); ctx.lineTo(180, i); ctx.stroke();
+    }
     
+    // Базы
     ctx.fillStyle = '#0066ff';
-    ctx.fillRect(offsetX + baseBlue.position.x * scale - 3, offsetY + baseBlue.position.z * scale - 3, 6, 6);
-    
+    ctx.fillRect(ox + baseBlue.position.x * scale - 4, oy + baseBlue.position.z * scale - 4, 8, 8);
     ctx.fillStyle = '#ff0000';
-    ctx.fillRect(offsetX + baseRed.position.x * scale - 3, offsetY + baseRed.position.z * scale - 3, 6, 6);
+    ctx.fillRect(ox + baseRed.position.x * scale - 4, oy + baseRed.position.z * scale - 4, 8, 8);
     
-    ctx.fillStyle = '#00ff88';
-    ctx.beginPath();
-    ctx.arc(offsetX + player.position.x * scale, offsetY + player.position.z * scale, 4, 0, Math.PI * 2);
-    ctx.fill();
+    // Игрок
+    if (player) {
+        ctx.fillStyle = '#00ff88';
+        ctx.beginPath();
+        ctx.arc(ox + player.position.x * scale, oy + player.position.z * scale, 4, 0, Math.PI * 2);
+        ctx.fill();
+    }
     
-    ctx.fillStyle = '#00ffff';
-    allies.forEach(ally => {
-        if (ally !== player && ally !== baseBlue) {
+    // Союзники
+    ctx.fillStyle = '#00aaff';
+    allies.forEach(a => {
+        if (a !== player && a !== baseBlue && a.userData) {
             ctx.beginPath();
-            ctx.arc(offsetX + ally.position.x * scale, offsetY + ally.position.z * scale, 2, 0, Math.PI * 2);
+            ctx.arc(ox + a.position.x * scale, oy + a.position.z * scale, 2, 0, Math.PI * 2);
             ctx.fill();
         }
     });
     
-    ctx.fillStyle = '#ff6600';
-    enemies.forEach(enemy => {
-        if (enemy !== baseRed) {
+    // Враги
+    ctx.fillStyle = '#ff4444';
+    enemies.forEach(e => {
+        if (e !== baseRed && e.userData) {
             ctx.beginPath();
-            ctx.arc(offsetX + enemy.position.x * scale, offsetY + enemy.position.z * scale, 2, 0, Math.PI * 2);
+            ctx.arc(ox + e.position.x * scale, oy + e.position.z * scale, 2, 0, Math.PI * 2);
             ctx.fill();
         }
     });
 }
 
-window.toggleShop = function() {
+function toggleShop() {
     const shop = document.getElementById('shopMenu');
     if (shop.style.display === 'none' || shop.style.display === '') {
         shop.style.display = 'block';
-        if (gameState === 'playing') {
-            gameState = 'paused';
-        }
+        document.exitPointerLock();
+        if (gameState === 'playing') gameState = 'paused';
     } else {
         shop.style.display = 'none';
-        if (gameState === 'paused') {
-            gameState = 'playing';
-        }
+        if (gameState === 'paused') gameState = 'playing';
     }
-};
+}
 
 function buyUpgrade(type, cost) {
-    if (credits >= cost && !upgrades[type]) {
-        credits -= cost;
-        upgrades[type] = true;
-        document.getElementById('creditsValue').textContent = credits;
-        
-        if (type === 'aa_gun' && playerType === 'aa') {
-            player.userData.fireRate = 0.07;
-        } else if (type === 'aa_missile' && playerType === 'aa') {
-            player.userData.fireRate = 0.5;
-        } else if (type === 'drone_scout' && playerType === 'drone') {
-            player.userData.speed = 100;
-        } else if (type === 'drone_strike' && playerType === 'drone') {
-            player.userData.bombs = 4;
-        } else if (type === 'drone_fpv' && playerType === 'drone') {
-            player.userData.speed = 120;
-        }
-        
-        alert('Улучшение куплено!');
-    } else if (upgrades[type]) {
-        alert('Уже куплено!');
-    } else {
-        alert('Недостаточно кредитов!');
-    }
+    if (upgrades[type]) { alert('Уже куплено!'); return; }
+    if (credits < cost) { alert('Недостаточно кредитов! Нужно: ' + cost); return; }
+    credits -= cost;
+    upgrades[type] = true;
+    document.getElementById('creditsValue').textContent = credits;
+    
+    if (type === 'aa_gun' && player && playerType === 'aa') player.userData.fireRate = 0.1;
+    if (type === 'drone_scout' && player && playerType === 'drone') player.userData.speed = 100;
+    if (type === 'drone_fpv' && player && playerType === 'drone') player.userData.speed = 130;
+    
+    alert('✅ Улучшение куплено!');
 }
 
 function endGame(victory, message) {
     gameState = 'gameover';
+    document.exitPointerLock();
     document.getElementById('gameOver').style.display = 'block';
     document.getElementById('gameOverText').textContent = message;
-    
+    const title = document.getElementById('gameOverTitle');
     if (victory) {
-        document.getElementById('gameOver').querySelector('h2').textContent = 'ПОБЕДА!';
-        document.getElementById('gameOver').querySelector('h2').style.color = '#00ff88';
+        title.textContent = '🏆 ПОБЕДА!';
+        title.style.color = '#00ff88';
         credits += 500;
     } else {
-        document.getElementById('gameOver').querySelector('h2').textContent = 'ПОРАЖЕНИЕ';
-        document.getElementById('gameOver').querySelector('h2').style.color = '#ff0000';
+        title.textContent = '💀 ПОРАЖЕНИЕ';
+        title.style.color = '#ff4444';
         credits += 100;
     }
-    
     document.getElementById('creditsValue').textContent = credits;
 }
 
@@ -1133,49 +1241,38 @@ function animate() {
     requestAnimationFrame(animate);
     
     if (gameState !== 'playing') {
-        if (renderer && scene && camera) {
-            renderer.render(scene, camera);
-        }
+        if (renderer && scene && camera) renderer.render(scene, camera);
         return;
     }
     
-    const delta = clock.getDelta();
+    const delta = Math.min(clock.getDelta(), 0.05);
     
     gameTime -= delta;
     if (gameTime <= 0) {
-        const blueScore = baseBlue.userData.hp;
-        const redScore = baseRed.userData.hp;
-        if (blueScore > redScore) {
-            endGame(true, 'Время вышло! Вы победили по очкам!');
-        } else {
-            endGame(false, 'Время вышло! Вы проиграли по очкам!');
-        }
+        const blueHP = baseBlue ? baseBlue.userData.hp : 0;
+        const redHP = baseRed ? baseRed.userData.hp : 0;
+        endGame(blueHP > redHP, 'Время вышло! ' + (blueHP > redHP ? 'Победа!' : 'Поражение!'));
+        return;
     }
     
-    const minutes = Math.floor(gameTime / 60);
-    const seconds = Math.floor(gameTime % 60);
-    document.getElementById('timer').textContent = 
-        `${minutes}:${seconds.toString().padStart(2, '0')}`;
+    const min = Math.floor(gameTime / 60);
+    const sec = Math.floor(gameTime % 60);
+    document.getElementById('timer').textContent = `${min}:${sec.toString().padStart(2, '0')}`;
     
-    const hpPercent = (baseBlue.userData.hp / baseBlue.userData.maxHp) * 100;
-    document.getElementById('baseHPBar').style.width = hpPercent + '%';
+    if (baseBlue) {
+        const hpPct = Math.max(0, (baseBlue.userData.hp / baseBlue.userData.maxHp) * 100);
+        document.getElementById('baseHPBar').style.width = hpPct + '%';
+    }
     
     updatePlayer(delta);
     
-    allies.forEach(ally => {
-        if (ally.userData.type === 'drone') {
-            updateDroneAI(ally, delta);
-        } else if (ally.userData.type === 'aa') {
-            updateAAAI(ally, delta);
-        }
+    allies.forEach(a => {
+        if (a.userData.type === 'drone') updateDroneAI(a, delta);
+        else if (a.userData.type === 'aa') updateAAAI(a, delta);
     });
-    
-    enemies.forEach(enemy => {
-        if (enemy.userData.type === 'drone') {
-            updateDroneAI(enemy, delta);
-        } else if (enemy.userData.type === 'aa') {
-            updateAAAI(enemy, delta);
-        }
+    enemies.forEach(e => {
+        if (e.userData.type === 'drone') updateDroneAI(e, delta);
+        else if (e.userData.type === 'aa') updateAAAI(e, delta);
     });
     
     updateProjectiles(delta);
@@ -1184,37 +1281,18 @@ function animate() {
     if (cameraShake > 0) {
         camera.position.x += (Math.random() - 0.5) * cameraShake;
         camera.position.y += (Math.random() - 0.5) * cameraShake;
-        cameraShake *= 0.9;
+        cameraShake *= 0.88;
         if (cameraShake < 0.01) cameraShake = 0;
     }
     
     updateMinimap();
-    
     document.getElementById('creditsValue').textContent = credits;
     
     renderer.render(scene, camera);
 }
 
-// Обработчики кнопок
-document.getElementById('btnTrainingAA').addEventListener('click', () => window.startGame('training_aa'));
-document.getElementById('btnTrainingDrone').addEventListener('click', () => window.startGame('training_drone'));
-document.getElementById('btnBattle').addEventListener('click', () => window.startGame('battle'));
-document.getElementById('btnShop').addEventListener('click', () => window.toggleShop());
-document.getElementById('btnCloseShop').addEventListener('click', () => window.toggleShop());
-
-document.getElementById('buyAAGun').addEventListener('click', () => buyUpgrade('aa_gun', 500));
-document.getElementById('buyAAMissile').addEventListener('click', () => buyUpgrade('aa_missile', 1000));
-document.getElementById('buyScout').addEventListener('click', () => buyUpgrade('drone_scout', 300));
-document.getElementById('buyStrike').addEventListener('click', () => buyUpgrade('drone_strike', 800));
-document.getElementById('buyFPV').addEventListener('click', () => buyUpgrade('drone_fpv', 400));
-
-document.getElementById('btnMainMenu').addEventListener('click', () => location.reload());
-
-window.addEventListener('error', (e) => {
-    console.error('Ошибка:', e.message);
-});
-
-document.addEventListener('contextmenu', (e) => e.preventDefault());
+document.addEventListener('contextmenu', e => e.preventDefault());
+window.addEventListener('error', e => console.error('Ошибка:', e.message));
 </script>
 </body>
 </html>
