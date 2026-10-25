@@ -2,7 +2,7 @@
 <html lang="ru">
 <head>
 <meta charset="utf-8">
-<title>SKYFIRE - Web Clone (Realistic)</title>
+<title>SKYFIRE - Web Clone (Final v2)</title>
 <style>
 body{margin:0;overflow:hidden;background:#000;font-family:'Segoe UI',Tahoma,Verdana,sans-serif;user-select:none;cursor:crosshair}
 canvas{display:block}
@@ -57,9 +57,6 @@ canvas{display:block}
 
 /* FPV HUD ELEMENTS */
 #fpv-hud{display:none;position:absolute;top:0;left:0;width:100%;height:100%;pointer-events:none}
-.fpv-ticks{position:absolute;top:50%;left:50%;transform:translate(-50%,-50%);width:100px;height:400px;display:flex;flex-direction:column;justify-content:space-between;align-items:center;opacity:0.7}
-.fpv-tick{width:20px;height:2px;background:#fff;margin:5px 0;}
-.fpv-tick:nth-child(even){width:10px;}
 .fpv-text-left{position:absolute;left:20%;top:30%;color:#fff;font-family:monospace;font-size:14px;text-align:right;text-shadow:1px 1px 2px #000;line-height:1.5}
 .fpv-text-right{position:absolute;right:20%;top:30%;color:#fff;font-family:monospace;font-size:14px;text-align:left;text-shadow:1px 1px 2px #000;line-height:1.5}
 .fpv-center-reticle{position:absolute;top:50%;left:50%;transform:translate(-50%,-50%);width:200px;height:100px}
@@ -82,7 +79,7 @@ canvas{display:block}
   <div class="drone-card" onclick="startGame('drone', 'kr1')">
     <h3>КР-1 (Ударный)</h3>
     <p>Тип: Самолет</p>
-    <p>Управление: W/S (Нос), A/D (Крен)</p>
+    <p>Управление: Мышь/W/S (Нос), A/D (Крен)</p>
     <p>Скорость: Shift (Ускорение), Ctrl (Торможение)</p>
     <p>Вооружение: 2 бомбы</p>
   </div>
@@ -130,7 +127,7 @@ canvas{display:block}
   <div class="fpv-text-left">
     ВЫСОТА<br><span id="fpv-alt">0</span> M<br><br>
     СКОРОСТЬ<br><span id="fpv-speed">0</span> КМ/Ч<br><br>
-    ВЗРЫВНАЯ БОМБА
+    <span id="fpv-weapon">ВЗРЫВНАЯ БОМБА</span>
   </div>
   <div class="fpv-text-right">
     ВРЕМЯ ПОЛЕТА<br>0:00<br><br>
@@ -156,11 +153,9 @@ const mouse={isLocked:false, movementX:0, movementY:0};
 const raycaster=new THREE.Raycaster();
 let groundMesh, blueBase;
 
-// View Mode: 'tps' or 'fpv'
 let viewMode = 'tps';
 let camYaw = 0, camPitch = 0;
 
-// Wave Management
 let currentWave = 1;
 let enemiesToSpawn = 0;
 let spawnTimer = 0;
@@ -245,7 +240,6 @@ function createDrone(team, type, x, y, z){
   const color=team===TEAM_BLUE?0x00aaff:0xff3333;
   
   if(type === 'kr1') {
-    // Улучшенная модель самолета
     const body=new THREE.Mesh(new THREE.CylinderGeometry(5,5,50,8),new THREE.MeshStandardMaterial({color:color,metalness:0.6}));
     body.rotation.x=Math.PI/2;body.castShadow=true;group.add(body);
     const wing=new THREE.Mesh(new THREE.BoxGeometry(70,3,15),new THREE.MeshStandardMaterial({color:0x333333}));
@@ -255,12 +249,10 @@ function createDrone(team, type, x, y, z){
     const fin=new THREE.Mesh(new THREE.BoxGeometry(3,20,10),new THREE.MeshStandardMaterial({color:color}));
     fin.position.set(0,10,-20);fin.castShadow=true;group.add(fin);
   } else {
-    // Улучшенная модель FPV с ракетой
     const body=new THREE.Mesh(new THREE.BoxGeometry(18,6,25),new THREE.MeshStandardMaterial({color:0x222222}));
     body.castShadow=true;group.add(body);
     const cam=new THREE.Mesh(new THREE.BoxGeometry(8,8,8),new THREE.MeshStandardMaterial({color:0x0044ff}));
     cam.position.set(0,6,-10);cam.castShadow=true;group.add(cam);
-    // Подвешенная ракета
     const missile=new THREE.Mesh(new THREE.CylinderGeometry(4,4,20,8),new THREE.MeshStandardMaterial({color:0xffaa00}));
     missile.rotation.x=Math.PI/2;missile.position.set(0,-8,0);missile.castShadow=true;group.add(missile);
     
@@ -300,8 +292,12 @@ function createBase(team,x,z){
 
 function spawnWorld(){
   blueBase = createBase(TEAM_BLUE, -500, 0);
-  createAA(TEAM_BLUE, -400, -200);
-  createAA(TEAM_BLUE, -400, 200);
+  
+  // Спавним союзные ПВО вокруг базы (исправлено)
+  createAA(TEAM_BLUE, -450, -150);
+  createAA(TEAM_BLUE, -450, 150);
+  createAA(TEAM_BLUE, -350, -250);
+  createAA(TEAM_BLUE, -350, 250);
   
   const treeGeo=new THREE.ConeGeometry(20,60,7);const treeMat=new THREE.MeshStandardMaterial({color:0x1a5d1a});
   const rockGeo=new THREE.DodecahedronGeometry(15);const rockMat=new THREE.MeshStandardMaterial({color:0x888888,roughness:1});
@@ -326,6 +322,7 @@ function setupEvents(){
       viewMode = viewMode === 'tps' ? 'fpv' : 'tps';
       document.getElementById('fpv-hud').style.display = viewMode === 'fpv' ? 'block' : 'none';
       document.getElementById('cross').style.display = viewMode === 'fpv' ? 'none' : 'flex';
+      document.getElementById('fpv-weapon').innerText = droneType === 'kr1' ? 'ВЗРЫВНАЯ БОМБА' : 'КАМИКАДЗЕ';
       if(playerEntity && playerEntity.marker) playerEntity.marker.style.display = 'none';
       if(playerEntity && playerEntity.mesh) playerEntity.mesh.visible = viewMode === 'tps';
     }
@@ -341,7 +338,7 @@ function setupEvents(){
   
   addEventListener('click',()=>{
     if(gameMode==='aa'&&!isDead&&!mouse.isLocked) document.body.requestPointerLock();
-    if(gameMode==='drone'&&!isDead&&!mouse.isLocked) document.body.requestPointerLock(); // Мышь нужна для наклона
+    if(gameMode==='drone'&&!isDead&&!mouse.isLocked) document.body.requestPointerLock();
   });
   
   document.addEventListener('pointerlockchange',()=>{
@@ -384,6 +381,7 @@ function startGame(mode, type='kr1'){
     if(playerEntity.marker) playerEntity.marker.style.display='none';
     document.getElementById('wave-info').innerText = `Уничтожьте ПВО противника! (C - сменить вид)`;
     
+    // Спавним вражеские ПВО для игрока-дрона
     for(let i=0;i<5;i++) createAA(TEAM_RED, 0+Math.random()*1000, (Math.random()-0.5)*1000);
   }
   deaths=0; kills=0; isDead=false; document.getElementById('respawn-screen').style.display='none';
@@ -405,7 +403,7 @@ function spawnEnemyDrone() {
     const z = blueBase.pos.z + Math.sin(angle) * dist;
     const y = 300 + Math.random() * 200;
     
-    const drone = createDrone(TEAM_RED, 'fpv', x, y, z); // Враги - камикадзе
+    const drone = createDrone(TEAM_RED, 'fpv', x, y, z); // Враги - камикадзе FPV
     drone.speed = 90 + currentWave * 10;
 }
 
@@ -419,9 +417,8 @@ function shoot(){
     b.position.copy(startPos).add(dir.clone().multiplyScalar(30));scene.add(b);
     projectiles.push({mesh:b,vel:dir.multiplyScalar(800),isBomb:false,life:3,dmg:25,team:TEAM_BLUE});
   } else {
-    if (droneType === 'fpv') return; // FPV - камикадзе, у него нет бомб
+    if (droneType === 'fpv') return; // FPV не сбрасывает бомбы, он камикадзе
     
-    // Бомба для КР-1
     const bomb=new THREE.Mesh(new THREE.CylinderGeometry(3,3,12,8),new THREE.MeshStandardMaterial({color:0x111111,metalness:0.8}));
     bomb.rotation.x=Math.PI/2;
     
@@ -530,42 +527,40 @@ function updatePlayer(dt){
     p.mesh.rotation.y = camYaw;
     p.barrels.rotation.x = -camPitch;
   } else {
-    // Физика дрона
     if (droneType === 'kr1') {
-      // Самолет: постоянное движение вперед, мышь/W/S - тангаж, A/D - крен
+      // КР-1: Самолет, всегда летит. Управление мышью/W/S.
       let speed = 105;
       if(keys['ShiftLeft']||keys['ShiftRight']) speed = 150;
       if(keys['ControlLeft']||keys['ControlRight']) speed = 60;
-      
       p.speed = THREE.MathUtils.lerp(p.speed, speed, dt*2);
       
-      // Управление тангажом (нос вверх/вниз)
-      let pitchInput = 0;
-      if(keys['KeyW']||keys['ArrowUp']) pitchInput += 1;
-      if(keys['KeyS']||keys['ArrowDown']) pitchInput -= 1;
+      if(mouse.isLocked){
+        camYaw -= mouse.movementX * 0.002;
+        camPitch -= mouse.movementY * 0.002;
+        camPitch = Math.max(-1.0, Math.min(1.0, camPitch));
+        mouse.movementX = 0; mouse.movementY = 0;
+      }
       
-      p.pitch = THREE.MathUtils.lerp(p.pitch, pitchInput * 0.5, dt*2);
+      let pitchInput = camPitch; // Мышь управляет носом
+      if(keys['KeyW']||keys['ArrowUp']) pitchInput += 0.5;
+      if(keys['KeyS']||keys['ArrowDown']) pitchInput -= 0.5;
       
-      // Управление креном (поворот)
+      p.pitch = THREE.MathUtils.lerp(p.pitch, pitchInput, dt*3);
+      
       let rollInput = 0;
       if(keys['KeyA']||keys['ArrowLeft']) rollInput += 1;
       if(keys['KeyD']||keys['ArrowRight']) rollInput -= 1;
       
       p.roll = THREE.MathUtils.lerp(p.roll, rollInput * 0.8, dt*3);
-      
-      // Поворот на основе крена
       p.yaw += rollInput * 1.5 * dt;
       
-      // Движение
       const fwd = new THREE.Vector3(-Math.sin(p.yaw)*Math.cos(p.pitch), Math.sin(p.pitch), -Math.cos(p.yaw)*Math.cos(p.pitch));
       p.velocity.copy(fwd).multiplyScalar(p.speed);
       p.pos.add(p.velocity.clone().multiplyScalar(dt));
       
-      // Ограничение высоты
       const minY = groundY(p.pos.x,p.pos.z) + 20;
       if (p.pos.y < minY) { p.pos.y = minY; p.pitch = Math.max(0, p.pitch); }
       
-      // Визуал
       p.mesh.position.copy(p.pos);
       p.mesh.rotation.order = 'YXZ';
       p.mesh.rotation.y = p.yaw;
@@ -573,19 +568,12 @@ function updatePlayer(dt){
       p.mesh.rotation.z = p.roll;
       
     } else {
-      // FPV Квадрокоптер: W - держать высоту, мышь - наклон
+      // FPV Квадрокоптер: Нужно удерживать W, мышь - наклон вперед/назад, A/D - крен
       let up = (keys['KeyW']||keys['Space']) ? 1 : 0;
-      let down = (keys['KeyS']||keys['ShiftLeft']||keys['ControlLeft']) ? 1 : 0;
-      
-      // Если не держим W - падаем
-      let targetYVel = 0;
-      if (up) targetYVel = 50;
-      else if (down) targetYVel = -80;
-      else targetYVel = -30; // Гравитация
+      let targetYVel = up ? 30 : -60; // Если не держим W - падаем
       
       p.velocity.y = THREE.MathUtils.lerp(p.velocity.y, targetYVel, dt*2);
       
-      // Наклон мышью
       if(mouse.isLocked){
         camYaw -= mouse.movementX * 0.002;
         camPitch -= mouse.movementY * 0.002;
@@ -594,27 +582,23 @@ function updatePlayer(dt){
       }
       
       p.yaw = camYaw;
-      p.pitch = -camPitch; // Нос вниз при наклоне мыши вниз
+      p.pitch = -camPitch; // Наклоняемся вниз по мыши
       
-      // Движение вперед
-      const fwd = new THREE.Vector3(-Math.sin(p.yaw)*Math.cos(p.pitch), Math.sin(p.pitch), -Math.cos(p.yaw)*Math.cos(p.pitch));
-      p.velocity.x = fwd.x * 100;
-      p.velocity.z = fwd.z * 100;
+      // При наклоне вперед (pitch > 0) летим быстрее
+      let forwardSpeed = 100 + (p.pitch * 50); 
+      const fwd = new THREE.Vector3(-Math.sin(p.yaw), 0, -Math.cos(p.yaw));
+      
+      p.velocity.x = fwd.x * forwardSpeed;
+      p.velocity.z = fwd.z * forwardSpeed;
       
       p.pos.add(p.velocity.clone().multiplyScalar(dt));
       
-      // Ограничение высоты / Столкновение с землей (разбился)
+      // Столкновение с землей (разбился)
       const minY = groundY(p.pos.x,p.pos.z) + 5;
       if (p.pos.y < minY) {
-        p.pos.y = minY;
-        if (p.velocity.y < -40) {
-          playerDie(); // Разбился при падении
-        } else {
-          p.velocity.y = 0;
-        }
+        playerDie(); // FPV разбивается
       }
       
-      // Визуал
       p.mesh.position.copy(p.pos);
       p.mesh.rotation.order = 'YXZ';
       p.mesh.rotation.y = p.yaw;
@@ -622,7 +606,6 @@ function updatePlayer(dt){
       p.mesh.rotation.z = 0;
     }
     
-    // Ограничения карты
     const lim=SIZE/2-100;p.pos.x=Math.max(-lim,Math.min(lim,p.pos.x));p.pos.z=Math.max(-lim,Math.min(lim,p.pos.z));
   }
 }
@@ -658,13 +641,12 @@ function updateEntities(dt){
   entities.forEach(e=>{
     if(!e.alive)return;
     
-    // ИИ дронов-камикадзе
     if(e.type==='drone' && e.team===TEAM_RED && !e.isPlayer && gameMode==='aa'){
       const dx = blueBase.pos.x - e.pos.x;
       const dz = blueBase.pos.z - e.pos.z;
       const distToBase = Math.sqrt(dx*dx + dz*dz);
       
-      if(distToBase < 50){ // Взрыв камикадзе
+      if(distToBase < 80){ // Радиус взрыва камикадзе
         blueBase.hp -= 150; 
         createExplosion(blueBase.pos.clone().add(new THREE.Vector3(0,40,0)));
         e.alive=false;e.mesh.visible=false;if(e.marker)e.marker.style.display='none';
@@ -678,6 +660,7 @@ function updateEntities(dt){
       }
     }
     
+    // Союзные ПВО стреляют по дронам
     if(e.type==='aa' && e!==playerEntity){
       let target=findNearestEnemy(e.pos,e.team,'drone');
       if(target){
