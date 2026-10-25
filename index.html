@@ -2,7 +2,7 @@
 <html lang="ru">
 <head>
 <meta charset="utf-8">
-<title>Drone vs AA - V3</title>
+<title>Drone vs AA - V4</title>
 <style>
 body{margin:0;overflow:hidden;background:#000;font-family:'Segoe UI',Tahoma,Verdana,sans-serif;user-select:none;cursor:crosshair}
 canvas{display:block}
@@ -18,6 +18,10 @@ canvas{display:block}
 #cross::before,#cross::after{content:'';position:absolute;background:#fff}
 #cross::before{width:2px;height:12px;top:-8px;box-shadow:0 48px 0 #fff}
 #cross::after{width:12px;height:2px;left:-8px;box-shadow:48px 0 0 #fff}
+#aa-cross{position:absolute;width:60px;height:60px;border:2px dashed #ff3333;border-radius:50%;transform:translate(-50%,-50%);display:none;pointer-events:none;box-shadow:0 0 10px rgba(255,0,0,0.5)}
+#aa-cross::before,#aa-cross::after{content:'';position:absolute;background:#ff3333}
+#aa-cross::before{width:2px;height:15px;top:50%;left:50%;transform:translate(-50%,-50%);box-shadow:0 0 5px #ff0000}
+#aa-cross::after{width:15px;height:2px;top:50%;left:50%;transform:translate(-50%,-50%);box-shadow:0 0 5px #ff0000}
 .marker{position:absolute;transform:translate(-50%,-100%);display:flex;flex-direction:column;align-items:center;pointer-events:none}
 .marker-name{font-size:12px;font-weight:bold;text-shadow:1px 1px 2px #000;margin-bottom:2px}
 .marker-bar{width:60px;height:6px;background:rgba(0,0,0,0.5);border:1px solid #fff;border-radius:3px;overflow:hidden}
@@ -27,8 +31,10 @@ canvas{display:block}
 .ally .marker-fill{background:#44aaff}
 .dmg{position:absolute;color:#ff4444;font-weight:bold;font-size:24px;text-shadow:1px 1px 3px #000;pointer-events:none;animation:floatUp 1s forwards}
 @keyframes floatUp{to{transform:translateY(-60px);opacity:0}}
-#menu{position:fixed;top:0;left:0;width:100%;height:100%;background:linear-gradient(rgba(0,0,0,0.7),rgba(0,0,0,0.9));display:flex;flex-direction:column;justify-content:center;align-items:center;color:#fff;z-index:100}
-#menu h1{font-size:48px;margin-bottom:40px;text-shadow:0 0 20px #00aaff}
+#menu,#win-screen{position:fixed;top:0;left:0;width:100%;height:100%;background:linear-gradient(rgba(0,0,0,0.7),rgba(0,0,0,0.9));display:flex;flex-direction:column;justify-content:center;align-items:center;color:#fff;z-index:100}
+#win-screen{display:none;background:rgba(0,50,0,0.8)}
+#menu h1,#win-screen h1{font-size:48px;margin-bottom:40px;text-shadow:0 0 20px #00aaff}
+#win-screen h1{color:#00ff00;text-shadow:0 0 20px #00ff00}
 .btn{background:rgba(0,0,0,0.6);border:2px solid #00aaff;color:#fff;padding:15px 40px;margin:10px;font-size:24px;cursor:pointer;border-radius:8px;transition:0.3s;box-shadow:0 0 10px rgba(0,170,255,0.5)}
 .btn:hover{background:#00aaff;box-shadow:0 0 20px #00aaff}
 #respawn-screen{position:fixed;top:0;left:0;width:100%;height:100%;background:rgba(50,0,0,0.8);display:none;flex-direction:column;justify-content:center;align-items:center;color:#fff;z-index:50}
@@ -46,16 +52,22 @@ canvas{display:block}
 <b>ПВО:</b> Мышь - Прицел | ЛКМ - Огонь | ПКМ (зажать) - Обзор
 </div>
 </div>
+<div id="win-screen">
+<h1>ПОБЕДА!</h1>
+<p style="font-size:20px;margin-bottom:30px">Вы уничтожили все силы противника.</p>
+<button class="btn" onclick="location.reload()">В главное меню</button>
+</div>
 <div id="respawn-screen">
 <h2>ВАС СБИЛИ</h2>
 <div id="respawn-timer">5</div>
 </div>
 <div id="hud">
 <button id="menu-btn" onclick="location.reload()">В МЕНЮ</button>
-<div id="score">ПВО уничтожено: 0 / 5</div>
+<div id="score">Целей уничтожено: 0 / 5</div>
 <div id="hp-bar"><div id="hp-fill"></div><div id="hp-text">100 / 100 HP</div></div>
 <canvas id="minimap" width="220" height="220"></canvas>
 <div id="cross"></div>
+<div id="aa-cross"></div>
 </div>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
 <script>
@@ -65,15 +77,15 @@ let scene,camera,renderer,clock,gameMode='none',playerEntity,isDead=false,respaw
 const projectiles=[], entities=[];
 const bombPathLine=new THREE.Line();
 const keys={};
-const mouse={x:0,y:0,isDown:false};
+const mouse={x:0,y:0,isDown:false, screenX:innerWidth/2, screenY:innerHeight/2};
 const raycaster=new THREE.Raycaster();
 const mouseVector=new THREE.Vector2();
-let groundMesh, sunLight;
+let groundMesh;
 
 // ===== Init =====
 function init(){
   scene=new THREE.Scene();
-  scene.background=new THREE.Color(0xaaccff); // Красивое небо
+  scene.background=new THREE.Color(0xaaccff);
   scene.fog=new THREE.FogExp2(0xaaccff,0.0003);
   
   camera=new THREE.PerspectiveCamera(75,innerWidth/innerHeight,0.1,10000);
@@ -85,21 +97,20 @@ function init(){
   
   clock=new THREE.Clock();
   
-  // Освещение
-  const hemi=new THREE.HemisphereLight(0xffffff,0x224422,0.6); scene.add(hemi);
-  sunLight=new THREE.DirectionalLight(0xfff5e6,1.2);
-  sunLight.position.set(1000,2000,500);
-  sunLight.castShadow=true; sunLight.shadow.camera.top=3000; sunLight.shadow.camera.bottom=-3000;
-  sunLight.shadow.camera.left=-3000; sunLight.shadow.camera.right=3000;
-  sunLight.shadow.mapSize.width=2048; sunLight.shadow.mapSize.height=2048;
-  scene.add(sunLight);
+  const hemi=new THREE.HemisphereLight(0xffffff,0x224422,0.7); scene.add(hemi);
+  const sun=new THREE.DirectionalLight(0xfff5e6,1.2);
+  sun.position.set(1000,2000,500);
+  sun.castShadow=true; sun.shadow.camera.top=3000; sun.shadow.camera.bottom=-3000;
+  sun.shadow.camera.left=-3000; sun.shadow.camera.right=3000;
+  sun.shadow.mapSize.width=2048; sun.shadow.mapSize.height=2048;
+  scene.add(sun);
   
   buildTerrain();
   spawnWorld();
   
   const pathGeo=new THREE.BufferGeometry().setFromPoints([new THREE.Vector3(),new THREE.Vector3()]);
   bombPathLine.geometry=pathGeo;
-  bombPathLine.material=new THREE.LineDashedMaterial({color:0xff0000,dashSize:10,gapSize:10,transparent:true,opacity:0.8,linewidth:2});
+  bombPathLine.material=new THREE.LineDashedMaterial({color:0xff0000,dashSize:10,gapSize:10,transparent:true,opacity:0.8});
   scene.add(bombPathLine);
   
   setupEvents();
@@ -108,11 +119,9 @@ function init(){
 
 // ===== Terrain =====
 function heightAt(x,z){
-  // Более комплексный ландшафт с горами
-  let h = Math.sin(x*0.002)*50 + Math.cos(z*0.0025)*40;
-  h += Math.sin(x*0.01 + z*0.005)*15;
-  h += Math.exp(-((x-1000)**2 + (z-1000)**2)/500000)*300; // Гора
-  h += Math.exp(-((x+1500)**2 + (z+500)**2)/800000)*400; // Гора
+  let h = Math.sin(x*0.002)*50 + Math.cos(z*0.0025)*40 + Math.sin(x*0.01 + z*0.005)*15;
+  h += Math.exp(-((x-1000)**2 + (z-1000)**2)/500000)*300;
+  h += Math.exp(-((x+1500)**2 + (z+500)**2)/800000)*400;
   return h;
 }
 function buildTerrain(){
@@ -155,29 +164,27 @@ function createDrone(team,x,y,z){
   const group=new THREE.Group();group.position.set(x,y,z);
   const color=team===TEAM_BLUE?0x00aaff:0xff3333;
   
-  // Корпус
   const body=new THREE.Mesh(new THREE.CylinderGeometry(6,6,30,8),new THREE.MeshStandardMaterial({color:0x222222,metalness:0.5}));
   body.rotation.x=Math.PI/2;body.castShadow=true;group.add(body);
-  // Кабина
   const cockpit=new THREE.Mesh(new THREE.SphereGeometry(8,8,8),new THREE.MeshStandardMaterial({color:0x111111,roughness:0.2}));
   cockpit.position.set(0,4,-5);cockpit.scale.set(1,0.6,1.5);cockpit.castShadow=true;group.add(cockpit);
-  // Крылья (квадрокоптер)
+  
   const arms=new THREE.Group();
   for(let i=0;i<4;i++){
     const angle = Math.PI/4 + i*(Math.PI/2);
     const arm=new THREE.Mesh(new THREE.BoxGeometry(40,2,4),new THREE.MeshStandardMaterial({color:color}));
     arm.position.set(Math.cos(angle)*20, 0, Math.sin(angle)*20);
-    arm.rotation.y = -angle;
-    arm.castShadow=true;arms.add(arm);
-    // Винты
+    arm.rotation.y = -angle;arm.castShadow=true;arms.add(arm);
     const rotor=new THREE.Mesh(new THREE.CylinderGeometry(10,10,1,12),new THREE.MeshStandardMaterial({color:0x666666,transparent:true,opacity:0.7}));
-    rotor.position.set(Math.cos(angle)*40, 2, Math.sin(angle)*40);
-    arms.add(rotor);
+    rotor.position.set(Math.cos(angle)*40, 2, Math.sin(angle)*40);arms.add(rotor);
   }
-  group.add(arms);
-  scene.add(group);
+  group.add(arms);scene.add(group);
   
-  const ent={type:'drone',team,mesh:group,pos:group.position,yaw:team===TEAM_BLUE?0:Math.PI,hp:100,maxHp:100,alive:true,speed:150,velocity:new THREE.Vector3()};
+  const el=document.createElement('div');el.className='marker '+(team===TEAM_BLUE?'ally':'enemy');
+  el.innerHTML=`<div class="marker-name">Дрон</div><div class="marker-bar"><div class="marker-fill"></div></div>`;
+  document.getElementById('hud').appendChild(el);
+  
+  const ent={type:'drone',team,mesh:group,pos:group.position,yaw:0,hp:100,maxHp:100,alive:true,speed:150,velocity:new THREE.Vector3(),marker:el,aiTimer:0};
   entities.push(ent);return ent;
 }
 
@@ -192,18 +199,18 @@ function createBase(team,x,z){
 function spawnWorld(){
   createBase(TEAM_BLUE, -2000, 0); createBase(TEAM_RED, 2000, 0);
   
-  // ПВО врагов
   for(let i=0;i<5;i++) createAA(TEAM_RED, 800+Math.random()*800, (Math.random()-0.5)*2000);
-  // Союзные ПВО
   for(let i=0;i<5;i++) createAA(TEAM_BLUE, -800-Math.random()*800, (Math.random()-0.5)*2000);
   
-  // Окружение (деревья, камни)
+  // Вражеские дроны
+  for(let i=0;i<5;i++) createDrone(TEAM_RED, 1500+Math.random()*500, 400+Math.random()*200, (Math.random()-0.5)*1000);
+  
   const treeGeo=new THREE.ConeGeometry(20,60,7);const treeMat=new THREE.MeshStandardMaterial({color:0x1a5d1a});
   const rockGeo=new THREE.DodecahedronGeometry(15);const rockMat=new THREE.MeshStandardMaterial({color:0x888888,roughness:1});
   
   for(let i=0;i<300;i++){
     const x=(Math.random()-0.5)*SIZE*0.9, z=(Math.random()-0.5)*SIZE*0.9;
-    if(Math.abs(x)<800)continue; // Не спавним в центре боя
+    if(Math.abs(x)<800)continue;
     const y=groundY(x,z);
     if(Math.random()>0.3){
       const t=new THREE.Mesh(treeGeo,treeMat);t.position.set(x,y+30,z);t.scale.setScalar(0.8+Math.random());t.castShadow=true;t.receiveShadow=true;scene.add(t);
@@ -221,6 +228,8 @@ function setupEvents(){
   addEventListener('mousemove',e=>{
     mouse.x=(e.clientX/innerWidth)*2-1;
     mouse.y=-(e.clientY/innerHeight)*2+1;
+    mouse.screenX=e.clientX;
+    mouse.screenY=e.clientY;
   });
   
   addEventListener('mousedown',e=>{
@@ -230,10 +239,7 @@ function setupEvents(){
     }
   });
   
-  addEventListener('mouseup',e=>{
-    if(e.button===2)mouse.isDown=false;
-  });
-  
+  addEventListener('mouseup',e=>{if(e.button===2)mouse.isDown=false;});
   addEventListener('contextmenu',e=>e.preventDefault());
 
   document.getElementById('btn-drone').onclick=()=>startGame('drone');
@@ -246,14 +252,13 @@ function startGame(mode){
   document.getElementById('menu').style.display='none';
   document.getElementById('hud').style.display='block';
   document.getElementById('cross').style.display=mode==='drone'?'flex':'none';
+  document.getElementById('aa-cross').style.display=mode==='aa'?'block':'none';
   
   if(mode==='drone'){
     playerEntity=createDrone(TEAM_BLUE, -1500, 400, 0);
-    camera.position.set(playerEntity.pos.x, playerEntity.pos.y+50, playerEntity.pos.z+150);
   }else{
     playerEntity=createAA(TEAM_BLUE, -1500, 0);
-    playerEntity.mesh.visible=false; // Скрываем модель игрока
-    // Камера для ПВО смотрит вниз под углом
+    playerEntity.mesh.visible=false;
     camera.position.set(playerEntity.pos.x, playerEntity.pos.y+40, playerEntity.pos.z+50);
     camera.rotation.x = -0.3;
   }
@@ -263,16 +268,13 @@ function startGame(mode){
 // ===== Combat =====
 function shoot(){
   if(gameMode==='drone'){
-    // Бомба
     const bomb=new THREE.Mesh(new THREE.CylinderGeometry(3,3,12,8),new THREE.MeshStandardMaterial({color:0x111111,metalness:0.8}));
     bomb.rotation.x=Math.PI/2;
     const fwd=new THREE.Vector3(-Math.sin(playerEntity.yaw),0,-Math.cos(playerEntity.yaw));
     bomb.position.copy(playerEntity.pos).add(fwd.clone().multiplyScalar(30));
-    bomb.position.y-=10;
-    bomb.castShadow=true;scene.add(bomb);
+    bomb.position.y-=10;bomb.castShadow=true;scene.add(bomb);
     projectiles.push({mesh:bomb,vel:fwd.clone().multiplyScalar(150).add(new THREE.Vector3(0,-10,0)),isBomb:true,life:10,dmg:50,team:playerEntity.team});
   }else{
-    // ПВО стреляет
     raycaster.setFromCamera(mouseVector, camera);
     const intersects=raycaster.intersectObjects([groundMesh,...entities.filter(e=>e.alive).map(e=>e.mesh)]);
     let targetPoint=new THREE.Vector3();
@@ -283,8 +285,7 @@ function shoot(){
     const dir=targetPoint.clone().sub(startPos).normalize();
     
     const b=new THREE.Mesh(new THREE.SphereGeometry(2,4,4),new THREE.MeshBasicMaterial({color:0x00ffff}));
-    b.position.copy(startPos).add(dir.clone().multiplyScalar(30));
-    scene.add(b);
+    b.position.copy(startPos).add(dir.clone().multiplyScalar(30));scene.add(b);
     projectiles.push({mesh:b,vel:dir.multiplyScalar(500),isBomb:false,life:5,dmg:25,team:playerEntity.team});
   }
 }
@@ -304,7 +305,8 @@ function applyDamage(ent,dmg){
   if(ent.hp<=0){
     ent.hp=0;ent.alive=false;ent.mesh.visible=false;
     if(ent.marker)ent.marker.style.display='none';
-    if(ent.team===TEAM_RED){kills++;document.getElementById('score').innerText=`ПВО уничтожено: ${kills} / 5`;}
+    if(ent.team===TEAM_RED && ent.type==='aa'){kills++;document.getElementById('score').innerText=`Целей уничтожено: ${kills} / 5`;}
+    if(ent.team===TEAM_RED && ent.type==='drone'){kills++;document.getElementById('score').innerText=`Целей уничтожено: ${kills} / 5`;}
   }
 }
 
@@ -325,15 +327,16 @@ function animate(){
     respawnTime-=dt;
     document.getElementById('respawn-timer').innerText=Math.ceil(respawnTime);
     if(respawnTime<=0){
-      if(deaths>=10){
-        alert('Вы проиграли!');location.reload();
-      }else{
-        respawnPlayer();
-      }
+      if(deaths>=10){alert('Вы проиграли!');location.reload();}
+      else{respawnPlayer();}
     }
   }
   
-  if(kills>=5){alert('Победа! Вы уничтожили все ПВО противника.');location.reload();}
+  if(kills>=5 && gameMode!=='none'){
+    document.getElementById('win-screen').style.display='flex';
+    document.getElementById('hud').style.display='none';
+    gameMode='none';
+  }
   
   renderer.render(scene,camera);
 }
@@ -341,7 +344,6 @@ function animate(){
 function updatePlayer(dt){
   const p=playerEntity;
   if(gameMode==='drone'){
-    // Физика полета
     let turn=(keys['KeyA']||keys['ArrowLeft']?1:0)-(keys['KeyD']||keys['ArrowRight']?1:0);
     p.yaw+=turn*1.5*dt;
     
@@ -350,33 +352,34 @@ function updatePlayer(dt){
     
     // Инерция
     const targetVel=new THREE.Vector3(-Math.sin(p.yaw)*p.speed*mv, up*100, -Math.cos(p.yaw)*p.speed*mv);
-    p.velocity.lerp(targetVel, dt*3); // Плавный разгон/торможение
+    p.velocity.lerp(targetVel, dt*3);
     
     p.pos.add(p.velocity.clone().multiplyScalar(dt));
     
-    // Ограничения
     const lim=SIZE/2-100;p.pos.x=Math.max(-lim,Math.min(lim,p.pos.x));p.pos.z=Math.max(-lim,Math.min(lim,p.pos.z));
     const minY=groundY(p.pos.x,p.pos.z)+30;p.pos.y=Math.max(minY,p.pos.y);
     
-    // Визуал: Крен при повороте и наклон при движении
+    // Визуал
     p.mesh.position.copy(p.pos);
     p.mesh.rotation.y=p.yaw;
+    // Наклоны дрона
+    const targetPitch = (mv>0? 0.3 : (mv<0? -0.3 : 0)) + (up*0.1);
+    p.mesh.rotation.x = THREE.MathUtils.lerp(p.mesh.rotation.x, -targetPitch, dt*5);
     p.mesh.rotation.z = THREE.MathUtils.lerp(p.mesh.rotation.z, -turn*0.4, dt*5);
-    p.mesh.rotation.x = THREE.MathUtils.lerp(p.mesh.rotation.x, -p.velocity.z*0.002, dt*5);
     
-    // Траектория бомбы
+    // Траектория
     const start=p.pos.clone();
     let curr=start.clone();let vel=new THREE.Vector3(-Math.sin(p.yaw)*p.speed*mv, 0, -Math.cos(p.yaw)*p.speed*mv);
     const points=[curr.clone()];
     for(let i=0;i<40;i++){
-      vel.y-=9.8*10*dt*2; // Ускорение свободного падения (усиленное для игры)
+      vel.y-=9.8*10*dt*2;
       curr.add(vel.clone().multiplyScalar(dt*2));
       points.push(curr.clone());
       if(curr.y<groundY(curr.x,curr.z))break;
     }
     if(points.length>1){bombPathLine.geometry.setFromPoints(points);bombPathLine.computeLineDistances();bombPathLine.visible=true;}
   }else{
-    // ПВО - прицел
+    // ПВО наведение
     mouseVector.x=mouse.x; mouseVector.y=mouse.y;
     raycaster.setFromCamera(mouseVector, camera);
     const intersects=raycaster.intersectObject(groundMesh);
@@ -391,6 +394,10 @@ function updatePlayer(dt){
       p.targetPitch=Math.atan2(targetPoint.y-(p.pos.y+22),dist);
       p.barrels.rotation.x = THREE.MathUtils.lerp(p.barrels.rotation.x, -p.targetPitch, dt*5);
     }
+    // Перемещение прицела по экрану
+    const cross=document.getElementById('aa-cross');
+    cross.style.left=mouse.screenX+'px';
+    cross.style.top=mouse.screenY+'px';
   }
 }
 
@@ -398,14 +405,12 @@ let camYaw=0, camPitch=0;
 function updateCamera(dt){
   const p=playerEntity;
   if(gameMode==='drone'){
-    // Камера от третьего лица с инерцией
     const camOffset=new THREE.Vector3(Math.sin(p.yaw)*180, 60, Math.cos(p.yaw)*180);
     const targetPos=p.pos.clone().add(camOffset);
     camera.position.lerp(targetPos,dt*4);
     camera.lookAt(p.pos.clone().add(new THREE.Vector3(0,20,0)));
     bombPathLine.visible=true;
   }else{
-    // ПВО вид от первого лица (башня)
     if(mouse.isDown){
       camYaw-=mouse.x*0.02; camPitch-=mouse.y*0.02;
       camPitch=Math.max(-0.8,Math.min(0.5,camPitch));
@@ -422,6 +427,28 @@ function updateCamera(dt){
 function updateEntities(dt){
   entities.forEach(e=>{
     if(!e.alive)return;
+    
+    // ИИ для дронов противника
+    if(e.type==='drone' && e!==playerEntity && e.team===TEAM_RED){
+      e.aiTimer-=dt;
+      if(e.aiTimer<=0){
+        e.aiTimer=2+Math.random()*2;
+        // Случайное изменение курса
+        e.yaw += (Math.random()-0.5)*0.5;
+      }
+      // Двигаемся вперед
+      const targetVel=new THREE.Vector3(-Math.sin(e.yaw)*e.speed, 0, -Math.cos(e.yaw)*e.speed);
+      e.velocity.lerp(targetVel, dt*2);
+      e.pos.add(e.velocity.clone().multiplyScalar(dt));
+      // Ограничения
+      const lim=SIZE/2-200;e.pos.x=Math.max(-lim,Math.min(lim,e.pos.x));e.pos.z=Math.max(-lim,Math.min(lim,e.pos.z));
+      e.pos.y=Math.max(groundY(e.pos.x,e.pos.z)+150, e.pos.y);
+      
+      e.mesh.position.copy(e.pos);
+      e.mesh.rotation.y=e.yaw;
+    }
+    
+    // ИИ для ПВО
     if(e.type==='aa'&&e!==playerEntity){
       let target=findNearestEnemy(e.pos,e.team,'drone');
       if(target){
@@ -435,10 +462,10 @@ function updateEntities(dt){
         
         e.cd-=dt;
         if(e.cd<=0&&dist<2000){
-          e.cd=1.5+Math.random()*1.5; // Задержка выстрела
+          e.cd=1.5+Math.random()*1.5;
           const b=new THREE.Mesh(new THREE.SphereGeometry(3,6,6),new THREE.MeshBasicMaterial({color:e.team===TEAM_BLUE?0x00ffff:0xff0000}));
           b.position.copy(e.pos);b.position.y+=22;
-          const aim=target.pos.clone().add(new THREE.Vector3((Math.random()-0.5)*50,(Math.random()-0.5)*50,(Math.random()-0.5)*50)); // Разброс
+          const aim=target.pos.clone().add(new THREE.Vector3((Math.random()-0.5)*50,(Math.random()-0.5)*50,(Math.random()-0.5)*50));
           const dir=aim.sub(b.position).normalize();
           scene.add(b);
           projectiles.push({mesh:b,vel:dir.multiplyScalar(450),isBomb:false,life:5,dmg:25,team:e.team});
@@ -460,11 +487,10 @@ function updateProjectiles(dt){
       if(e.alive&&e.team!==p.team&&e!==playerEntity){
         const r=e.type==='drone'?40:30;
         if(p.mesh.position.distanceTo(e.pos)<r){
-          applyDamage(e,p.dmg);hit=true;
-          createExplosion(p.mesh.position);
+          applyDamage(e,p.dmg);hit=true;createExplosion(p.mesh.position);
         }
       }
-      if(e===playerEntity&&e.alive&&e.team!==p.team&&p.team!==-1){
+      if(e===playerEntity&&e.alive&&e.team!==p.team){
         if(p.mesh.position.distanceTo(e.pos)<30){
           applyDamage(e,p.dmg);hit=true;createExplosion(p.mesh.position);
           const v=p.mesh.position.clone().project(camera);
