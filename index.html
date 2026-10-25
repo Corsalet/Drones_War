@@ -2,7 +2,7 @@
 <html lang="ru">
 <head>
 <meta charset="utf-8">
-<title>SKYFIRE - Explosion Fix</title>
+<title>SKYFIRE - Kamikaze Impact</title>
 <style>
 body{margin:0;overflow:hidden;background:#000;font-family:'Segoe UI',Tahoma,sans-serif;user-select:none;cursor:crosshair}
 canvas{display:block}
@@ -39,7 +39,7 @@ canvas{display:block}
 .drone-card:hover{border-color:#00aaff;background:rgba(0,50,100,0.8)}
 .drone-card h3{margin:0 0 10px 0;color:#00aaff}
 .drone-card p{margin:5px 0;font-size:14px;color:#ccc}
-#respawn-screen{position:fixed;top:0;left:0;width:100%;height:100%;background:rgba(50,0,0,0.9);display:none;flex-direction:column;justify-content:center;align-items:center;color:#fff;z-index:50}
+#respawn-screen{position:fixed;top:0;left:0;width:100%;height:100%;background:rgba(0,0,0,0.9);display:none;flex-direction:column;justify-content:center;align-items:center;color:#fff;z-index:50}
 #respawn-screen h2{font-size:40px;margin-bottom:20px;color:#ff4444}
 #respawn-timer{font-size:60px;font-weight:bold}
 </style>
@@ -109,7 +109,7 @@ const projectiles=[], entities=[];
 const keys={};
 const mouse={isLocked:false, movementX:0, movementY:0};
 const raycaster=new THREE.Raycaster();
-let groundMesh, blueBase;
+let groundMesh, blueBase, redBase;
 let viewMode = 'tps', camYaw = 0, camPitch = 0;
 let currentWave = 1, enemiesToSpawn = 0, spawnTimer = 0, maxWaves = 3, waveInProgress = false;
 
@@ -201,6 +201,7 @@ function createBase(team,x,z){
 
 function spawnWorld(){
   blueBase = createBase(TEAM_BLUE, -500, 0);
+  redBase = createBase(TEAM_RED, 1500, 0);
   createAA(TEAM_BLUE, -450, -150); createAA(TEAM_BLUE, -450, 150);
   createAA(TEAM_BLUE, -350, -250); createAA(TEAM_BLUE, -350, 250);
   
@@ -370,12 +371,35 @@ function updatePlayer(dt){
       p.velocity.x=fwd.x*forwardSpeed; p.velocity.z=fwd.z*forwardSpeed;
       p.pos.add(p.velocity.clone().multiplyScalar(dt));
       
-      // ПРОВЕРКА НА ВЗРЫВ ПРИ КАСАНИИ ЗЕМЛИ
+      // ПРОВЕРКА НА ВЗРЫВ ПРИ КАСАНИИ ЗЕМЛИ ИЛИ БАЗЫ ИЛИ ПВО
+      // 1. Земля
       const minY = groundY(p.pos.x, p.pos.z) + 2;
       if(p.pos.y < minY) {
-        createExplosion(p.pos); // Сначала взрыв
-        playerDie(); // Потом смерть
+        createExplosion(p.pos); 
+        playerDie(); 
         return;
+      }
+      
+      // 2. База врага (Красная)
+      if(p.pos.distanceTo(redBase.pos) < 100) {
+         createExplosion(p.pos);
+         redBase.hp -= 500; // Огромный урон базе
+         playerDie();
+         return;
+      }
+      
+      // 3. ПВО врага
+      let hitAA = null;
+      entities.forEach(e => {
+        if(e.alive && e.team === TEAM_RED && e.type === 'aa' && p.pos.distanceTo(e.pos) < 30) {
+           hitAA = e;
+        }
+      });
+      if(hitAA) {
+         createExplosion(p.pos);
+         applyDamage(hitAA, 999); // Убиваем ПВО нафиг
+         playerDie();
+         return;
       }
       
       p.mesh.position.copy(p.pos); p.mesh.rotation.order='YXZ'; p.mesh.rotation.y=p.yaw; p.mesh.rotation.x=p.pitch; p.mesh.rotation.z=0;
@@ -463,7 +487,7 @@ function updateProjectiles(dt){
 }
 
 function createExplosion(pos){
-  const geo=new THREE.SphereGeometry(25,8,8); // Огромный шар
+  const geo=new THREE.SphereGeometry(25,8,8);
   const mat=new THREE.MeshBasicMaterial({color:0xff5500,transparent:true,opacity:1});
   const mesh=new THREE.Mesh(geo,mat); mesh.position.copy(pos); scene.add(mesh);
   setTimeout(()=>scene.remove(mesh),300);
