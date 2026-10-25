@@ -2,7 +2,7 @@
 <html lang="ru">
 <head>
 <meta charset="utf-8">
-<title>Drone vs AA - V10</title>
+<title>Drone vs AA - V11</title>
 <style>
 body{margin:0;overflow:hidden;background:#000;font-family:'Segoe UI',Tahoma,Verdana,sans-serif;user-select:none;cursor:crosshair}
 canvas{display:block}
@@ -202,11 +202,9 @@ function createDrone(team,x,y,z){
   document.getElementById('hud').appendChild(el);
   
   const targetBase = team===TEAM_BLUE ? redBase : blueBase;
-  const targetX = targetBase.pos.x;
-  const targetZ = targetBase.pos.z;
-  const startYaw = Math.atan2(-(targetX - x), -(targetZ - z)); 
+  const startYaw = Math.atan2(-(targetBase.pos.x - x), -(targetBase.pos.z - z)); 
   
-  const ent={type:'drone',team,mesh:group,pos:group.position,yaw:startYaw,hp:100,maxHp:100,alive:true,speed:100,velocity:new THREE.Vector3(),marker:el,aiTimer:0,targetX,targetZ};
+  const ent={type:'drone',team,mesh:group,pos:group.position,yaw:startYaw,hp:100,maxHp:100,alive:true,speed:100,velocity:new THREE.Vector3(),marker:el,aiTimer:0};
   entities.push(ent);return ent;
 }
 
@@ -449,6 +447,8 @@ function updateEntities(dt){
       // Вектор на базу
       const dx = targetBase.pos.x - e.pos.x;
       const dz = targetBase.pos.z - e.pos.z;
+      
+      // Считаем дистанцию ТОЛЬКО по земле (X и Z), чтобы высота не мешала сбросу бомбы
       const distToBase = Math.sqrt(dx*dx + dz*dz);
       
       if(distToBase < 300){
@@ -524,6 +524,19 @@ function updateProjectiles(dt){
         }
       }
     });
+    
+    // Проверка урона базам от бомб игрока и ботов
+    if(p.isBomb){
+      const targetBase = p.team===TEAM_BLUE ? redBase : blueBase;
+      const dx = targetBase.pos.x - p.mesh.position.x;
+      const dz = targetBase.pos.z - p.mesh.position.z;
+      const dist = Math.sqrt(dx*dx + dz*dz);
+      if(dist < 150){
+        targetBase.hp -= p.dmg;
+        createExplosion(p.mesh.position);
+        hit=true;
+      }
+    }
     
     if(hit||p.life<=0||p.mesh.position.y<groundY(p.mesh.position.x,p.mesh.position.z)){
       createExplosion(p.mesh.position);scene.remove(p.mesh);projectiles.splice(i,1);
