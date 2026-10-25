@@ -2,7 +2,7 @@
 <html lang="ru">
 <head>
 <meta charset="utf-8">
-<title>Drone vs AA - V9</title>
+<title>Drone vs AA - V10</title>
 <style>
 body{margin:0;overflow:hidden;background:#000;font-family:'Segoe UI',Tahoma,Verdana,sans-serif;user-select:none;cursor:crosshair}
 canvas{display:block}
@@ -201,10 +201,12 @@ function createDrone(team,x,y,z){
   el.innerHTML=`<div class="marker-name">Дрон</div><div class="marker-bar"><div class="marker-fill"></div></div>`;
   document.getElementById('hud').appendChild(el);
   
-  const targetX = team===TEAM_BLUE ? 2000 : -2000;
-  const startYaw = Math.atan2(-(targetX - x), 0); 
+  const targetBase = team===TEAM_BLUE ? redBase : blueBase;
+  const targetX = targetBase.pos.x;
+  const targetZ = targetBase.pos.z;
+  const startYaw = Math.atan2(-(targetX - x), -(targetZ - z)); 
   
-  const ent={type:'drone',team,mesh:group,pos:group.position,yaw:startYaw,hp:100,maxHp:100,alive:true,speed:100,velocity:new THREE.Vector3(),marker:el,aiTimer:0,targetX,targetZ:0};
+  const ent={type:'drone',team,mesh:group,pos:group.position,yaw:startYaw,hp:100,maxHp:100,alive:true,speed:100,velocity:new THREE.Vector3(),marker:el,aiTimer:0,targetX,targetZ};
   entities.push(ent);return ent;
 }
 
@@ -224,8 +226,9 @@ function spawnWorld(){
   for(let i=0;i<5;i++) createAA(TEAM_RED, 800+Math.random()*800, (Math.random()-0.5)*2000);
   for(let i=0;i<5;i++) createAA(TEAM_BLUE, -800-Math.random()*800, (Math.random()-0.5)*2000);
   
-  for(let i=0;i<5;i++) createDrone(TEAM_RED, 2000, 400+Math.random()*200, (Math.random()-0.5)*1000);
-  for(let i=0;i<5;i++) createDrone(TEAM_BLUE, -2000, 400+Math.random()*200, (Math.random()-0.5)*1000);
+  // Спавним дронов на линии фронта (в центре карты)
+  for(let i=0;i<5;i++) createDrone(TEAM_RED, 500+Math.random()*500, 400+Math.random()*200, (Math.random()-0.5)*1000);
+  for(let i=0;i<5;i++) createDrone(TEAM_BLUE, -500-Math.random()*500, 400+Math.random()*200, (Math.random()-0.5)*1000);
   
   const treeGeo=new THREE.ConeGeometry(20,60,7);const treeMat=new THREE.MeshStandardMaterial({color:0x1a5d1a});
   const rockGeo=new THREE.DodecahedronGeometry(15);const rockMat=new THREE.MeshStandardMaterial({color:0x888888,roughness:1});
@@ -442,17 +445,19 @@ function updateEntities(dt){
     
     if(e.type==='drone' && !e.isPlayer){
       const targetBase = e.team===TEAM_BLUE ? redBase : blueBase;
-      // Считаем дистанцию по горизонтали, чтобы высота не мешала
+      
+      // Вектор на базу
       const dx = targetBase.pos.x - e.pos.x;
       const dz = targetBase.pos.z - e.pos.z;
       const distToBase = Math.sqrt(dx*dx + dz*dz);
       
       if(distToBase < 300){
-        // Дрон сбрасывает бомбу и уничтожается
+        // Бомбим базу
         targetBase.hp -= 150; 
         createExplosion(targetBase.pos.clone().add(new THREE.Vector3(0,60,0)));
         e.alive=false;e.mesh.visible=false;if(e.marker)e.marker.style.display='none';
       } else {
+        // Летим к базе
         e.yaw = Math.atan2(-dx, -dz);
         const targetVel=new THREE.Vector3(-Math.sin(e.yaw)*e.speed, 0, -Math.cos(e.yaw)*e.speed);
         e.velocity.lerp(targetVel, dt*2);
@@ -562,7 +567,6 @@ function updateHUD(){
   document.getElementById('hp-fill').style.background=pct>50?'#00ff00':pct>25?'#ffaa00':'#ff0000';
   document.getElementById('hp-text').innerText=Math.ceil(Math.max(0,playerEntity.hp))+' / 100 HP';
   
-  // Обновляем HP баз
   document.getElementById('base-hp-blue').style.width = Math.max(0, blueBase.hp/blueBase.maxHp*100) + '%';
   document.getElementById('base-hp-red').style.width = Math.max(0, redBase.hp/redBase.maxHp*100) + '%';
   
