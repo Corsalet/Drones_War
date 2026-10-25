@@ -1,559 +1,617 @@
 <!DOCTYPE html>
 <html lang="ru">
 <head>
-<meta charset="utf-8">
-<title>SKYFIRE - Kamikaze Impact</title>
+<meta charset="UTF-8">
+<title>Tactical Air Defense Simulator</title>
 <style>
-body{margin:0;overflow:hidden;background:#000;font-family:'Segoe UI',Tahoma,sans-serif;user-select:none;cursor:crosshair}
-canvas{display:block}
-#hud{position:fixed;top:0;left:0;width:100%;height:100%;pointer-events:none;display:none}
-#menu-btn{position:absolute;top:20px;left:20px;background:rgba(0,0,0,0.7);border:2px solid #00aaff;color:#fff;padding:10px 20px;font-size:16px;cursor:pointer;border-radius:8px;pointer-events:auto;z-index:10}
-#hp-bar{position:absolute;bottom:30px;left:30px;width:300px;height:24px;border:2px solid #fff;background:rgba(0,0,0,0.5);border-radius:12px;overflow:hidden}
-#hp-fill{height:100%;width:100%;background:#0f0;transition:width .2s}
-#hp-text{position:absolute;top:50%;left:50%;transform:translate(-50%,-50%);color:#fff;font-weight:bold;font-size:14px;text-shadow:1px 1px 2px #000}
-#minimap{position:absolute;bottom:30px;right:30px;width:220px;height:220px;border:2px solid #fff;background:rgba(0,0,0,0.6);border-radius:50%}
-#score{position:absolute;top:20px;right:30px;color:#fff;font-size:20px;font-weight:bold;text-shadow:1px 1px 3px #000}
-#base-hp-container{position:absolute;top:20px;left:50%;transform:translateX(-50%);width:400px;text-align:center;color:#fff;font-weight:bold;text-shadow:1px 1px 2px #000}
-.base-hp-bar{width:100%;height:16px;border:2px solid #fff;background:rgba(0,0,0,0.5);margin-top:4px;border-radius:4px;overflow:hidden}
-#base-hp-blue{height:100%;width:100%;background:#00aaff;transition:width .2s}
-#wave-info{position:absolute;top:80px;left:50%;transform:translateX(-50%);color:#fff;font-size:24px;font-weight:bold;text-shadow:1px 1px 3px #000}
-#cross{position:absolute;top:50%;left:50%;transform:translate(-50%,-50%);width:40px;height:40px;border:2px solid #fff;border-radius:50%;display:none;pointer-events:none}
-#cross::before,#cross::after{content:'';position:absolute;background:#fff}
-#cross::before{width:2px;height:12px;top:-8px;box-shadow:0 48px 0 #fff}
-#cross::after{width:12px;height:2px;left:-8px;box-shadow:48px 0 0 #fff}
-.marker{position:absolute;transform:translate(-50%,-100%);display:flex;flex-direction:column;align-items:center;pointer-events:none}
-.marker-name{font-size:12px;font-weight:bold;text-shadow:1px 1px 2px #000;margin-bottom:2px}
-.marker-bar{width:60px;height:6px;background:rgba(0,0,0,0.5);border:1px solid #fff;border-radius:3px;overflow:hidden}
-.marker-fill{height:100%;width:100%;background:#ff4444}
-.enemy .marker-name{color:#ff4444}
-.ally .marker-name{color:#44aaff}
-.ally .marker-fill{background:#44aaff}
-#menu,#win-screen,#lose-screen,#drone-select{position:fixed;top:0;left:0;width:100%;height:100%;background:rgba(0,0,0,0.9);display:flex;flex-direction:column;justify-content:center;align-items:center;color:#fff;z-index:100}
-#win-screen,#lose-screen,#drone-select{display:none}
-#menu h1,#win-screen h1,#lose-screen h1,#drone-select h1{font-size:48px;margin-bottom:40px;color:#00aaff;text-shadow:0 0 20px #00aaff}
-#win-screen h1{color:#0f0;text-shadow:0 0 20px #0f0}
-#lose-screen h1{color:#f00;text-shadow:0 0 20px #f00}
-.btn{background:rgba(0,0,0,0.6);border:2px solid #00aaff;color:#fff;padding:15px 40px;margin:10px;font-size:24px;cursor:pointer;border-radius:8px;transition:0.3s}
-.btn:hover{background:#00aaff;box-shadow:0 0 20px #00aaff}
-.drone-card{background:rgba(20,20,20,0.8);border:2px solid #555;padding:20px;margin:10px;width:300px;cursor:pointer;transition:0.2s;border-radius:10px}
-.drone-card:hover{border-color:#00aaff;background:rgba(0,50,100,0.8)}
-.drone-card h3{margin:0 0 10px 0;color:#00aaff}
-.drone-card p{margin:5px 0;font-size:14px;color:#ccc}
-#respawn-screen{position:fixed;top:0;left:0;width:100%;height:100%;background:rgba(0,0,0,0.9);display:none;flex-direction:column;justify-content:center;align-items:center;color:#fff;z-index:50}
-#respawn-screen h2{font-size:40px;margin-bottom:20px;color:#ff4444}
-#respawn-timer{font-size:60px;font-weight:bold}
+* { margin: 0; padding: 0; box-sizing: border-box; }
+body { overflow: hidden; font-family: 'Arial', sans-serif; background: #000; }
+#gameCanvas { display: block; }
+
+/* Главное меню */
+#mainMenu {
+    position: fixed; top: 0; left: 0; width: 100%; height: 100%;
+    background: linear-gradient(135deg, #1a1a2e 0%, #16213e 100%);
+    display: flex; flex-direction: column; justify-content: center; align-items: center;
+    z-index: 1000;
+}
+#mainMenu h1 {
+    color: #00ff88; font-size: 48px; margin-bottom: 40px;
+    text-shadow: 0 0 20px #00ff88;
+}
+.menuBtn {
+    background: rgba(0, 255, 136, 0.1); border: 2px solid #00ff88;
+    color: #00ff88; padding: 15px 40px; margin: 10px; font-size: 18px;
+    cursor: pointer; transition: all 0.3s; min-width: 300px;
+}
+.menuBtn:hover {
+    background: rgba(0, 255, 136, 0.3); transform: scale(1.05);
+    box-shadow: 0 0 20px #00ff88;
+}
+
+/* Магазин */
+#shopMenu {
+    position: fixed; top: 50%; left: 50%; transform: translate(-50%, -50%);
+    background: rgba(20, 20, 40, 0.95); border: 2px solid #00ff88;
+    padding: 30px; display: none; z-index: 1001; min-width: 500px;
+}
+#shopMenu h2 { color: #00ff88; margin-bottom: 20px; text-align: center; }
+.shopItem {
+    background: rgba(0, 255, 136, 0.1); border: 1px solid #00ff88;
+    padding: 15px; margin: 10px 0; display: flex; justify-content: space-between;
+    align-items: center;
+}
+.shopItem button {
+    background: #00ff88; color: #000; border: none; padding: 8px 20px;
+    cursor: pointer; font-weight: bold;
+}
+.shopItem button:disabled { background: #666; cursor: not-allowed; }
+
+/* HUD */
+#hud {
+    position: fixed; top: 0; left: 0; width: 100%; height: 100%;
+    pointer-events: none; display: none; z-index: 100;
+}
+#credits {
+    position: absolute; top: 20px; right: 20px;
+    color: #00ff88; font-size: 24px; font-weight: bold;
+    text-shadow: 0 0 10px #00ff88;
+}
+#timer {
+    position: absolute; top: 20px; left: 50%; transform: translateX(-50%);
+    color: #fff; font-size: 28px; font-weight: bold;
+    text-shadow: 0 0 10px #000;
+}
+#baseHP {
+    position: absolute; top: 60px; left: 50%; transform: translateX(-50%);
+    width: 300px; height: 20px; background: rgba(0,0,0,0.5);
+    border: 2px solid #fff;
+}
+#baseHPBar {
+    height: 100%; background: linear-gradient(90deg, #ff0000, #ffff00, #00ff00);
+    width: 100%; transition: width 0.3s;
+}
+#minimap {
+    position: absolute; bottom: 20px; right: 20px;
+    width: 200px; height: 200px; background: rgba(0,0,0,0.7);
+    border: 2px solid #00ff88;
+}
+#minimapCanvas { width: 100%; height: 100%; }
+
+/* Прицел ПВО */
+#aaCrosshair {
+    position: absolute; top: 50%; left: 50%; transform: translate(-50%, -50%);
+    width: 100px; height: 100px; display: none;
+}
+#aaCrosshair::before, #aaCrosshair::after {
+    content: ''; position: absolute; background: #00ff88;
+}
+#aaCrosshair::before { width: 2px; height: 100%; left: 50%; transform: translateX(-50%); }
+#aaCrosshair::after { width: 100%; height: 2px; top: 50%; transform: translateY(-50%); }
+#heatBar {
+    position: absolute; bottom: 100px; left: 50%; transform: translateX(-50%);
+    width: 200px; height: 20px; background: rgba(0,0,0,0.5);
+    border: 2px solid #fff; display: none;
+}
+#heatBarFill {
+    height: 100%; background: linear-gradient(90deg, #00ff00, #ffff00, #ff0000);
+    width: 0%; transition: width 0.1s;
+}
+#ammoCount {
+    position: absolute; bottom: 130px; left: 50%; transform: translateX(-50%);
+    color: #fff; font-size: 20px; display: none;
+}
+
+/* HUD FPV */
+#fpvHUD {
+    position: absolute; top: 0; left: 0; width: 100%; height: 100%;
+    display: none;
+}
+#artificialHorizon {
+    position: absolute; top: 50%; left: 50%; transform: translate(-50%, -50%);
+    width: 300px; height: 300px; border: 2px solid rgba(0,255,136,0.5);
+    border-radius: 50%; overflow: hidden;
+}
+#horizonInner {
+    width: 100%; height: 200%; background: linear-gradient(180deg, #87ceeb 0%, #87ceeb 50%, #8b4513 50%, #8b4513 100%);
+    transition: transform 0.1s;
+}
+#speedIndicator {
+    position: absolute; left: 50px; top: 50%; transform: translateY(-50%);
+    color: #00ff88; font-size: 24px; font-weight: bold;
+}
+#altitudeIndicator {
+    position: absolute; right: 50px; top: 50%; transform: translateY(-50%);
+    color: #00ff88; font-size: 24px; font-weight: bold;
+}
+#recIndicator {
+    position: absolute; top: 30px; left: 30px;
+    color: #ff0000; font-size: 20px; font-weight: bold;
+    animation: blink 1s infinite;
+}
+@keyframes blink { 0%, 50% { opacity: 1; } 51%, 100% { opacity: 0; } }
+#fpvCrosshair {
+    position: absolute; top: 50%; left: 50%; transform: translate(-50%, -50%);
+    width: 80px; height: 80px; border: 2px solid #00ff88; border-radius: 50%;
+}
+#fpvCrosshair::before, #fpvCrosshair::after {
+    content: ''; position: absolute; background: #00ff88;
+}
+#fpvCrosshair::before { width: 2px; height: 100%; left: 50%; transform: translateX(-50%); }
+#fpvCrosshair::after { width: 100%; height: 2px; top: 50%; transform: translateY(-50%); }
+
+#lives {
+    position: absolute; top: 20px; left: 20px;
+    color: #ff0000; font-size: 24px; font-weight: bold;
+}
+#gameOver {
+    position: fixed; top: 50%; left: 50%; transform: translate(-50%, -50%);
+    background: rgba(0,0,0,0.9); border: 3px solid #ff0000;
+    padding: 40px; display: none; z-index: 1002; text-align: center;
+}
+#gameOver h2 { color: #ff0000; font-size: 48px; margin-bottom: 20px; }
+#gameOver p { color: #fff; font-size: 24px; margin: 10px 0; }
+#gameOver button {
+    background: #00ff88; color: #000; border: none; padding: 15px 40px;
+    font-size: 20px; cursor: pointer; margin-top: 20px;
+}
 </style>
 </head>
 <body>
-<div id="menu">
-<h1>SKYFIRE</h1>
-<p style="font-size:18px;color:#aaa;margin-bottom:30px">Выберите сторону конфликта.</p>
-<button class="btn" id="btn-aa">Играть за Защитников (ПВО)</button>
-<button class="btn" id="btn-operator">Играть за Операторов (Дрон)</button>
+
+<!-- Главное меню -->
+<div id="mainMenu">
+    <h1>ТАКТИЧЕСКИЙ СИМУЛЯТОР ПВО</h1>
+    <button class="menuBtn" onclick="startGame('training_aa')">Обучение ПВО</button>
+    <button class="menuBtn" onclick="startGame('training_drone')">Обучение Дрон</button>
+    <button class="menuBtn" onclick="startGame('battle')">Масштабная битва</button>
+    <button class="menuBtn" onclick="toggleShop()">Магазин</button>
 </div>
 
-<div id="drone-select">
-<h1>Выбор дрона</h1>
-<div style="display:flex;">
-  <div class="drone-card" onclick="startGame('drone', 'kr1')">
-    <h3>КР-1 (Ударный)</h3>
-    <p>Тип: Самолет</p>
-    <p>Управление: Мышь/W/S (Нос), A/D (Крен)</p>
-    <p>Скорость: Shift (Ускорение), Ctrl (Торможение)</p>
-    <p>Вооружение: 2 бомбы</p>
-  </div>
-  <div class="drone-card" onclick="startGame('drone', 'fpv')">
-    <h3>FPV (Камикадзе)</h3>
-    <p>Тип: Квадрокоптер</p>
-    <p>Управление: W (Держать высоту), Мышь (Наклон)</p>
-    <p>Скорость: 150 ST/S</p>
-    <p>Вооружение: Взрыв при столкновении</p>
-  </div>
-</div>
-<button class="btn" onclick="document.getElementById('drone-select').style.display='none';document.getElementById('menu').style.display='flex'">Назад</button>
+<!-- Магазин -->
+<div id="shopMenu">
+    <h2>МАГАЗИН</h2>
+    <div class="shopItem">
+        <span>Улучшенные пушки ПВО (+50% урона)</span>
+        <button onclick="buyUpgrade('aa_gun', 500)">500 кредитов</button>
+    </div>
+    <div class="shopItem">
+        <span>Ракетное ПВО (самонаведение)</span>
+        <button onclick="buyUpgrade('aa_missile', 1000)">1000 кредитов</button>
+    </div>
+    <div class="shopItem">
+        <span>Разведчик (быстрый дрон)</span>
+        <button onclick="buyUpgrade('drone_scout', 300)">300 кредитов</button>
+    </div>
+    <div class="shopItem">
+        <span>Ударный дрон (Bayraktar)</span>
+        <button onclick="buyUpgrade('drone_strike', 800)">800 кредитов</button>
+    </div>
+    <div class="shopItem">
+        <span>FPV-камикадзе</span>
+        <button onclick="buyUpgrade('drone_fpv', 400)">400 кредитов</button>
+    </div>
+    <button class="menuBtn" onclick="toggleShop()" style="margin-top: 20px;">Закрыть</button>
 </div>
 
-<div id="win-screen">
-<h1>ПОБЕДА!</h1>
-<p style="font-size:20px;margin-bottom:30px">Вы выполнили задачу.</p>
-<button class="btn" onclick="location.reload()">В главное меню</button>
-</div>
-<div id="lose-screen">
-<h1>ПОРАЖЕНИЕ</h1>
-<p style="font-size:20px;margin-bottom:30px">Вы не справились с задачей.</p>
-<button class="btn" onclick="location.reload()">В главное меню</button>
-</div>
-<div id="respawn-screen">
-<h2>ВАС СБИЛИ</h2>
-<p style="font-size:16px">Возрождение через:</p>
-<div id="respawn-timer">5</div>
-</div>
+<!-- HUD -->
 <div id="hud">
-<button id="menu-btn" onclick="location.reload()">В МЕНЮ</button>
-<div id="score">Сбито/Уничтожено: 0</div>
-<div id="wave-info">Ожидание...</div>
-<div id="base-hp-container">
-    <div style="text-align:center">ПРОЧНОСТЬ БАЗЫ<div class="base-hp-bar"><div id="base-hp-blue"></div></div></div>
-</div>
-<div id="hp-bar"><div id="hp-fill"></div><div id="hp-text">100 / 100 HP</div></div>
-<canvas id="minimap" width="220" height="220"></canvas>
-<div id="cross"></div>
+    <div id="credits">Кредиты: <span id="creditsValue">0</span></div>
+    <div id="timer">10:00</div>
+    <div id="baseHP"><div id="baseHPBar"></div></div>
+    <div id="minimap"><canvas id="minimapCanvas" width="200" height="200"></canvas></div>
+    
+    <!-- Прицел ПВО -->
+    <div id="aaCrosshair"></div>
+    <div id="heatBar"><div id="heatBarFill"></div></div>
+    <div id="ammoCount">Патроны: <span id="ammoValue">100</span></div>
+    
+    <!-- HUD FPV -->
+    <div id="fpvHUD">
+        <div id="artificialHorizon"><div id="horizonInner"></div></div>
+        <div id="speedIndicator">0 км/ч</div>
+        <div id="altitudeIndicator">0 м</div>
+        <div id="recIndicator">● REC</div>
+        <div id="fpvCrosshair"></div>
+    </div>
+    
+    <div id="lives">Жизни: <span id="livesValue">3</span></div>
 </div>
 
-<script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
+<!-- Game Over -->
+<div id="gameOver">
+    <h2>ИГРА ОКОНЧЕНА</h2>
+    <p id="gameOverText"></p>
+    <button onclick="location.reload()">В главное меню</button>
+</div>
+
+<script src="https://cdn.jsdelivr.net/npm/three@0.160.0/build/three.min.js"></script>
 <script>
-const SIZE=5000, TEAM_BLUE=0, TEAM_RED=1;
-let scene,camera,renderer,clock,gameMode='none',playerEntity,isDead=false,respawnTime=0,deaths=0,kills=0;
-let droneType = 'kr1';
-const projectiles=[], entities=[];
-const keys={};
-const mouse={isLocked:false, movementX:0, movementY:0};
-const raycaster=new THREE.Raycaster();
-let groundMesh, blueBase, redBase;
-let viewMode = 'tps', camYaw = 0, camPitch = 0;
-let currentWave = 1, enemiesToSpawn = 0, spawnTimer = 0, maxWaves = 3, waveInProgress = false;
+// Глобальные переменные
+let scene, camera, renderer, clock;
+let player, playerType = 'aa';
+let enemies = [], allies = [], projectiles = [], explosions = [];
+let keys = {}, mouse = { x: 0, y: 0, locked: false };
+let gameState = 'menu'; // menu, playing, paused, gameover
+let gameMode = '';
+let credits = 0, lives = 3, gameTime = 600; // 10 минут
+let baseBlue, baseRed;
+let terrain, trees = [];
+let cameraShake = 0;
+let upgrades = { aa_gun: false, aa_missile: false, drone_scout: false, drone_strike: false, drone_fpv: false };
 
-function init(){
-  scene=new THREE.Scene(); scene.background=new THREE.Color(0x87ceeb); scene.fog=new THREE.FogExp2(0x87ceeb,0.0003);
-  camera=new THREE.PerspectiveCamera(75,innerWidth/innerHeight,0.1,10000);
-  renderer=new THREE.WebGLRenderer({antialias:true,logarithmicDepthBuffer:true});
-  renderer.setSize(innerWidth,innerHeight); renderer.shadowMap.enabled=true; renderer.shadowMap.type=THREE.PCFSoftShadowMap;
-  document.body.insertBefore(renderer.domElement,document.getElementById('hud'));
-  clock=new THREE.Clock();
-  
-  const hemi=new THREE.HemisphereLight(0xffffff,0x224422,0.8); scene.add(hemi);
-  const sun=new THREE.DirectionalLight(0xfff5e6,1.2); sun.position.set(1000,2000,500);
-  sun.castShadow=true; sun.shadow.camera.top=3000; sun.shadow.camera.bottom=-3000; sun.shadow.camera.left=-3000; sun.shadow.camera.right=3000;
-  sun.shadow.mapSize.width=2048; sun.shadow.mapSize.height=2048; scene.add(sun);
-  
-  buildTerrain(); spawnWorld(); setupEvents(); animate();
-}
-
-function heightAt(x,z){
-  let h = Math.sin(x*0.002)*50 + Math.cos(z*0.0025)*40 + Math.sin(x*0.01 + z*0.005)*15;
-  h += Math.exp(-((x-1000)**2 + (z-1000)**2)/500000)*300;
-  h += Math.exp(-((x+1500)**2 + (z+500)**2)/800000)*400;
-  return h;
-}
-function buildTerrain(){
-  const geo=new THREE.PlaneGeometry(SIZE,SIZE,150,150);geo.rotateX(-Math.PI/2);
-  const pos=geo.attributes.position;
-  for(let i=0;i<pos.count;i++){pos.setY(i,heightAt(pos.getX(i),pos.getZ(i)));}
-  geo.computeVertexNormals();
-  groundMesh=new THREE.Mesh(geo,new THREE.MeshStandardMaterial({color:0x4a7c45,roughness:0.9}));
-  groundMesh.receiveShadow=true;scene.add(groundMesh);
-}
-function groundY(x,z){raycaster.set(new THREE.Vector3(x,2000,z),new THREE.Vector3(0,-1,0));const hits=raycaster.intersectObject(groundMesh);return hits.length?hits[0].point.y:heightAt(x,z);}
-
-function createAA(team,x,z){
-  const group=new THREE.Group();group.position.set(x,groundY(x,z),z);
-  const color=team===TEAM_BLUE?0x0055ff:0xaa0000;
-  const base=new THREE.Mesh(new THREE.CylinderGeometry(20,25,15,8),new THREE.MeshStandardMaterial({color:0x333333}));base.position.y=7.5;base.castShadow=true;group.add(base);
-  const cab=new THREE.Mesh(new THREE.BoxGeometry(25,15,30),new THREE.MeshStandardMaterial({color:color}));cab.position.y=22;cab.castShadow=true;group.add(cab);
-  const barrels=new THREE.Group();barrels.position.set(0,22,15);
-  for(let i=-1;i<=1;i+=2){const b=new THREE.Mesh(new THREE.CylinderGeometry(2,3,40,8),new THREE.MeshStandardMaterial({color:0x111111}));b.rotation.x=Math.PI/2;b.position.set(i*8,0,20);barrels.add(b);}
-  group.add(barrels);scene.add(group);
-  
-  const el=document.createElement('div');el.className='marker '+(team===TEAM_BLUE?'ally':'enemy');
-  el.innerHTML=`<div class="marker-name">ПВО</div><div class="marker-bar"><div class="marker-fill"></div></div>`;
-  document.getElementById('hud').appendChild(el);
-  
-  const ent={type:'aa',team,mesh:group,barrels,pos:group.position,hp:100,maxHp:100,alive:true,cd:0,marker:el};
-  entities.push(ent);return ent;
-}
-
-function createDrone(team, type, x, y, z){
-  const group=new THREE.Group();group.position.set(x,y,z);
-  const color=team===TEAM_BLUE?0x00aaff:0xff3333;
-  if(type === 'kr1') {
-    const body=new THREE.Mesh(new THREE.CylinderGeometry(5,5,50,8),new THREE.MeshStandardMaterial({color:color}));body.rotation.x=Math.PI/2;group.add(body);
-    const wing=new THREE.Mesh(new THREE.BoxGeometry(70,3,15),new THREE.MeshStandardMaterial({color:0x333333}));wing.position.z=-5;group.add(wing);
-    const tail=new THREE.Mesh(new THREE.BoxGeometry(25,3,10),new THREE.MeshStandardMaterial({color:0x333333}));tail.position.set(0,0,-20);group.add(tail);
-    const fin=new THREE.Mesh(new THREE.BoxGeometry(3,20,10),new THREE.MeshStandardMaterial({color:color}));fin.position.set(0,10,-20);group.add(fin);
-  } else {
-    const body=new THREE.Mesh(new THREE.BoxGeometry(18,6,25),new THREE.MeshStandardMaterial({color:0x222222}));group.add(body);
-    const cam=new THREE.Mesh(new THREE.BoxGeometry(8,8,8),new THREE.MeshStandardMaterial({color:0x0044ff}));cam.position.set(0,6,-10);group.add(cam);
-    const missile=new THREE.Mesh(new THREE.CylinderGeometry(4,4,20,8),new THREE.MeshStandardMaterial({color:0xffaa00}));missile.rotation.x=Math.PI/2;missile.position.set(0,-8,0);group.add(missile);
-    const arms=new THREE.Group();
-    for(let i=0;i<4;i++){const angle=Math.PI/4+i*(Math.PI/2);const arm=new THREE.Mesh(new THREE.BoxGeometry(35,2,4),new THREE.MeshStandardMaterial({color:0x444444}));arm.position.set(Math.cos(angle)*17,0,Math.sin(angle)*17);arm.rotation.y=-angle;arms.add(arm);const rotor=new THREE.Mesh(new THREE.CylinderGeometry(10,10,1,12),new THREE.MeshStandardMaterial({color:0x111111,transparent:true,opacity:0.6}));rotor.position.set(Math.cos(angle)*35,2,Math.sin(angle)*35);arms.add(rotor);}
-    group.add(arms);
-  }
-  group.traverse(c=>{if(c.isMesh)c.castShadow=true;});
-  scene.add(group);
-  
-  const el=document.createElement('div');el.className='marker '+(team===TEAM_BLUE?'ally':'enemy');
-  el.innerHTML=`<div class="marker-name">Дрон</div><div class="marker-bar"><div class="marker-fill"></div></div>`;
-  document.getElementById('hud').appendChild(el);
-  
-  const hp = type === 'kr1' ? 150 : 50;
-  const ent={type:'drone',droneType:type,team,mesh:group,pos:group.position,yaw:0,pitch:0,roll:0,hp:hp,maxHp:hp,alive:true,speed:105,velocity:new THREE.Vector3(),marker:el};
-  entities.push(ent);return ent;
-}
-
-function createBase(team,x,z){
-  const group=new THREE.Group();group.position.set(x,groundY(x,z),z);
-  const color=team===TEAM_BLUE?0x0055ff:0xaa0000;
-  const b=new THREE.Mesh(new THREE.BoxGeometry(150,60,150),new THREE.MeshStandardMaterial({color:0x444444}));b.position.y=30;b.castShadow=true;b.receiveShadow=true;group.add(b);
-  const roof=new THREE.Mesh(new THREE.ConeGeometry(120,40,4),new THREE.MeshStandardMaterial({color:color}));roof.position.y=80;roof.rotation.y=Math.PI/4;group.add(roof);
-  scene.add(group);
-  return {mesh:group, hp:1000, maxHp:1000, pos:group.position};
-}
-
-function spawnWorld(){
-  blueBase = createBase(TEAM_BLUE, -500, 0);
-  redBase = createBase(TEAM_RED, 1500, 0);
-  createAA(TEAM_BLUE, -450, -150); createAA(TEAM_BLUE, -450, 150);
-  createAA(TEAM_BLUE, -350, -250); createAA(TEAM_BLUE, -350, 250);
-  
-  const treeGeo=new THREE.ConeGeometry(20,60,7);const treeMat=new THREE.MeshStandardMaterial({color:0x1a5d1a});
-  const rockGeo=new THREE.DodecahedronGeometry(15);const rockMat=new THREE.MeshStandardMaterial({color:0x888888});
-  for(let i=0;i<300;i++){
-    const x=(Math.random()-0.5)*SIZE*0.9, z=(Math.random()-0.5)*SIZE*0.9;
-    if(Math.abs(x+500)<300)continue;
-    const y=groundY(x,z);
-    if(Math.random()>0.3){
-      const t=new THREE.Mesh(treeGeo,treeMat);t.position.set(x,y+30,z);t.scale.setScalar(0.8+Math.random());t.castShadow=true;scene.add(t);
-    }else{
-      const r=new THREE.Mesh(rockGeo,rockMat);r.position.set(x,y+5,z);r.rotation.set(Math.random(),Math.random(),Math.random());r.castShadow=true;scene.add(r);
-    }
-  }
-}
-
-function setupEvents(){
-  addEventListener('keydown',e=>{
-    keys[e.code]=true;
-    if(e.code === 'KeyC' && gameMode === 'drone') {
-      viewMode = viewMode === 'tps' ? 'fpv' : 'tps';
-      document.getElementById('cross').style.display = viewMode === 'fpv' ? 'none' : 'flex';
-      if(playerEntity) playerEntity.mesh.visible = viewMode === 'tps';
-    }
-  });
-  addEventListener('keyup',e=>keys[e.code]=false);
-  addEventListener('mousemove',e=>{if(mouse.isLocked){mouse.movementX=e.movementX||0;mouse.movementY=e.movementY||0;}});
-  addEventListener('click',()=>{if(gameMode!=='none'&&!isDead&&!mouse.isLocked) document.body.requestPointerLock();});
-  document.addEventListener('pointerlockchange',()=>{mouse.isLocked=document.pointerLockElement===document.body;});
-  addEventListener('mousedown',e=>{if(!isDead&&gameMode!=='none'&&e.button===0) shoot();});
-  addEventListener('contextmenu',e=>e.preventDefault());
-  document.getElementById('btn-aa').onclick=()=>startGame('aa');
-  document.getElementById('btn-operator').onclick=()=>{document.getElementById('menu').style.display='none';document.getElementById('drone-select').style.display='flex';};
-  addEventListener('resize',()=>{camera.aspect=innerWidth/innerHeight;camera.updateProjectionMatrix();renderer.setSize(innerWidth,innerHeight);});
-}
-
-function startGame(mode, type='kr1'){
-  gameMode=mode; droneType=type;
-  document.getElementById('menu').style.display='none';
-  document.getElementById('drone-select').style.display='none';
-  document.getElementById('hud').style.display='block';
-  document.getElementById('cross').style.display=mode==='drone'?'flex':'none';
-  
-  if(mode==='aa'){
-    playerEntity=createAA(TEAM_BLUE, -500, 0); playerEntity.mesh.visible=false;
-    startWave(1);
-  } else {
-    viewMode = 'tps';
-    playerEntity=createDrone(TEAM_BLUE, type, -1500, 400, 0); playerEntity.isPlayer=true;
-    if(playerEntity.marker) playerEntity.marker.style.display='none';
-    document.getElementById('wave-info').innerText=`Уничтожьте ПВО противника! (C - сменить вид)`;
-    for(let i=0;i<5;i++) createAA(TEAM_RED, 0+Math.random()*1000, (Math.random()-0.5)*1000);
-  }
-  deaths=0; kills=0; isDead=false; document.getElementById('respawn-screen').style.display='none';
-}
-
-function startWave(waveNum) {
-    currentWave=waveNum; waveInProgress=true; enemiesToSpawn=waveNum*3; spawnTimer=0;
-    document.getElementById('wave-info').innerText=`Волна ${currentWave} | Осталось врагов: ${enemiesToSpawn}`;
-}
-function spawnEnemyDrone() {
-    const angle=Math.random()*Math.PI*2, dist=1500;
-    const x=blueBase.pos.x+Math.cos(angle)*dist, z=blueBase.pos.z+Math.sin(angle)*dist;
-    const y=300+Math.random()*200;
-    const drone=createDrone(TEAM_RED,'fpv',x,y,z);
-    drone.speed=90+currentWave*10;
-}
-
-function shoot(){
-  if(gameMode==='aa'){
-    const dir=new THREE.Vector3(); camera.getWorldDirection(dir);
-    const b=new THREE.Mesh(new THREE.SphereGeometry(2,4,4),new THREE.MeshBasicMaterial({color:0x00ffff}));
-    b.position.copy(playerEntity.pos).add(dir.clone().multiplyScalar(30)); scene.add(b);
-    projectiles.push({mesh:b,vel:dir.multiplyScalar(800),isBomb:false,life:3,dmg:25,team:TEAM_BLUE});
-  } else {
-    if (droneType === 'fpv') return;
-    const bomb=new THREE.Mesh(new THREE.CylinderGeometry(3,3,12,8),new THREE.MeshStandardMaterial({color:0x111111}));
-    bomb.rotation.x=Math.PI/2;
-    let fwd=new THREE.Vector3(-Math.sin(playerEntity.yaw),-0.2,-Math.cos(playerEntity.yaw)).normalize();
-    bomb.position.copy(playerEntity.pos).add(fwd.clone().multiplyScalar(30)); bomb.position.y-=10;
-    scene.add(bomb);
-    projectiles.push({mesh:bomb,vel:fwd.clone().multiplyScalar(150).add(playerEntity.velocity),isBomb:true,life:10,dmg:100,team:TEAM_BLUE});
-  }
-}
-
-function findNearestEnemy(pos,myTeam,type){
-  let nearest=null,minD=3000;
-  entities.forEach(e=>{if(e.alive&&e.team!==myTeam&&e.type===type){const d=e.pos.distanceTo(pos);if(d<minD){minD=d;nearest=e;}}});
-  return nearest;
-}
-
-function applyDamage(ent,dmg){
-  ent.hp-=dmg;
-  if(ent.hp<=0){
-    ent.hp=0;ent.alive=false;ent.mesh.visible=false;
-    if(ent.marker)ent.marker.style.display='none';
-    if(ent.team===TEAM_RED){kills++;document.getElementById('score').innerText=`Уничтожено: ${kills}`;}
-  }
-}
-
-function animate(){
-  requestAnimationFrame(animate);
-  const dt=Math.min(clock.getDelta(),0.1);
-  if(gameMode!=='none'&&!isDead){
-    updatePlayer(dt); updateEntities(dt); updateProjectiles(dt); updateCamera(dt); updateHUD();
-  }
-  if(isDead){
-    respawnTime-=dt; document.getElementById('respawn-timer').innerText=Math.ceil(respawnTime);
-    if(respawnTime<=0) respawnPlayer();
-  }
-  if(gameMode==='aa' && waveInProgress) {
-      if(enemiesToSpawn > 0) {
-          spawnTimer-=dt;
-          if(spawnTimer<=0){spawnEnemyDrone();enemiesToSpawn--;spawnTimer=1.0;document.getElementById('wave-info').innerText=`Волна ${currentWave} | Осталось врагов: ${enemiesToSpawn}`;}
-      } else {
-          const redDrones=entities.filter(e=>e.team===TEAM_RED&&e.type==='drone'&&e.alive);
-          if(redDrones.length===0) {
-              waveInProgress=false;
-              if(currentWave<maxWaves) setTimeout(()=>startWave(currentWave+1),5000);
-              else { document.getElementById('win-screen').style.display='flex'; gameMode='none'; document.exitPointerLock(); }
-          }
-      }
-  }
-  if(gameMode==='drone'){
-    const redAAs=entities.filter(e=>e.team===TEAM_RED&&e.type==='aa'&&e.alive);
-    if(redAAs.length===0){document.getElementById('win-screen').style.display='flex';document.getElementById('hud').style.display='none';gameMode='none';}
-  }
-  if(blueBase.hp<=0 && gameMode!=='none'){document.getElementById('lose-screen').style.display='flex';document.getElementById('hud').style.display='none';gameMode='none';document.exitPointerLock();}
-  
-  renderer.render(scene,camera);
-}
-
-function updatePlayer(dt){
-  const p=playerEntity;
-  if(gameMode==='aa'){
-    if(mouse.isLocked){camYaw-=mouse.movementX*0.002;camPitch-=mouse.movementY*0.002;camPitch=Math.max(-1.5,Math.min(0.5,camPitch));mouse.movementX=0;mouse.movementY=0;}
-    p.mesh.rotation.y=camYaw; p.barrels.rotation.x=-camPitch;
-  } else {
-    if (droneType === 'kr1') {
-      let speed=105; if(keys['ShiftLeft']||keys['ShiftRight'])speed=150; if(keys['ControlLeft']||keys['ControlRight'])speed=60;
-      p.speed=THREE.MathUtils.lerp(p.speed,speed,dt*2);
-      
-      if(mouse.isLocked){camYaw-=mouse.movementX*0.002;camPitch-=mouse.movementY*0.002;camPitch=Math.max(-1.0,Math.min(1.0,camPitch));mouse.movementX=0;mouse.movementY=0;}
-      let pitchInput=camPitch; if(keys['KeyW']||keys['ArrowUp'])pitchInput+=0.5; if(keys['KeyS']||keys['ArrowDown'])pitchInput-=0.5;
-      p.pitch=THREE.MathUtils.lerp(p.pitch,pitchInput,dt*3);
-      
-      let rollInput=0; if(keys['KeyA']||keys['ArrowLeft'])rollInput+=1; if(keys['KeyD']||keys['ArrowRight'])rollInput-=1;
-      p.roll=THREE.MathUtils.lerp(p.roll,rollInput*0.8,dt*3); p.yaw+=rollInput*1.5*dt;
-      
-      const fwd=new THREE.Vector3(-Math.sin(p.yaw)*Math.cos(p.pitch),Math.sin(p.pitch),-Math.cos(p.yaw)*Math.cos(p.pitch));
-      p.velocity.copy(fwd).multiplyScalar(p.speed); p.pos.add(p.velocity.clone().multiplyScalar(dt));
-      
-      const minY=groundY(p.pos.x,p.pos.z)+20; if(p.pos.y<minY){p.pos.y=minY;p.pitch=Math.max(0,p.pitch);}
-      
-      p.mesh.position.copy(p.pos); p.mesh.rotation.order='YXZ'; p.mesh.rotation.y=p.yaw; p.mesh.rotation.x=p.pitch; p.mesh.rotation.z=p.roll;
-    } else {
-      // FPV: W - держать высоту. Если отпустить - падаем.
-      let up=(keys['KeyW']||keys['Space'])?1:0;
-      let targetYVel=up?30:-60; 
-      p.velocity.y=THREE.MathUtils.lerp(p.velocity.y,targetYVel,dt*2);
-      
-      if(mouse.isLocked){camYaw-=mouse.movementX*0.002;camPitch-=mouse.movementY*0.002;camPitch=Math.max(-1.0,Math.min(1.0,camPitch));mouse.movementX=0;mouse.movementY=0;}
-      p.yaw=camYaw; p.pitch=-camPitch;
-      
-      let forwardSpeed=150; const fwd=new THREE.Vector3(-Math.sin(p.yaw),0,-Math.cos(p.yaw));
-      p.velocity.x=fwd.x*forwardSpeed; p.velocity.z=fwd.z*forwardSpeed;
-      p.pos.add(p.velocity.clone().multiplyScalar(dt));
-      
-      // ПРОВЕРКА НА ВЗРЫВ ПРИ КАСАНИИ ЗЕМЛИ ИЛИ БАЗЫ ИЛИ ПВО
-      // 1. Земля
-      const minY = groundY(p.pos.x, p.pos.z) + 2;
-      if(p.pos.y < minY) {
-        createExplosion(p.pos); 
-        playerDie(); 
-        return;
-      }
-      
-      // 2. База врага (Красная)
-      if(p.pos.distanceTo(redBase.pos) < 100) {
-         createExplosion(p.pos);
-         redBase.hp -= 500; // Огромный урон базе
-         playerDie();
-         return;
-      }
-      
-      // 3. ПВО врага
-      let hitAA = null;
-      entities.forEach(e => {
-        if(e.alive && e.team === TEAM_RED && e.type === 'aa' && p.pos.distanceTo(e.pos) < 30) {
-           hitAA = e;
-        }
-      });
-      if(hitAA) {
-         createExplosion(p.pos);
-         applyDamage(hitAA, 999); // Убиваем ПВО нафиг
-         playerDie();
-         return;
-      }
-      
-      p.mesh.position.copy(p.pos); p.mesh.rotation.order='YXZ'; p.mesh.rotation.y=p.yaw; p.mesh.rotation.x=p.pitch; p.mesh.rotation.z=0;
-    }
-    const lim=SIZE/2-100;p.pos.x=Math.max(-lim,Math.min(lim,p.pos.x));p.pos.z=Math.max(-lim,Math.min(lim,p.pos.z));
-  }
-}
-
-function updateCamera(dt){
-  const p=playerEntity;
-  if(gameMode==='aa'){
-    camera.position.set(p.pos.x,p.pos.y+22,p.pos.z); camera.rotation.set(camPitch,camYaw,0,'YXZ');
-  } else {
-    if(viewMode==='fpv'){
-      p.mesh.visible=false;
-      const fwd=new THREE.Vector3(-Math.sin(p.yaw),0,-Math.cos(p.yaw));
-      camera.position.copy(p.pos).add(fwd.clone().multiplyScalar(15)); camera.position.y+=5;
-      camera.rotation.order='YXZ'; camera.rotation.y=p.yaw; camera.rotation.x=p.pitch; camera.rotation.z=p.roll||0;
-    } else {
-      p.mesh.visible=true;
-      const camOffset=new THREE.Vector3(Math.sin(p.yaw)*150,60,Math.cos(p.yaw)*150);
-      camera.position.lerp(p.pos.clone().add(camOffset),dt*5); camera.lookAt(p.pos.clone().add(new THREE.Vector3(0,10,0)));
-    }
-  }
-}
-
-function updateEntities(dt){
-  entities.forEach(e=>{
-    if(!e.alive)return;
+// Инициализация Three.js
+function initThree() {
+    scene = new THREE.Scene();
+    scene.background = new THREE.Color(0x87ceeb);
+    scene.fog = new THREE.Fog(0x87ceeb, 100, 5000);
     
-    if(e.type==='drone' && e.team===TEAM_RED && !e.isPlayer && gameMode==='aa'){
-      const dx=blueBase.pos.x-e.pos.x, dz=blueBase.pos.z-e.pos.z;
-      const distToBase=Math.sqrt(dx*dx+dz*dz);
-      if(distToBase<80){
-        blueBase.hp-=150; createExplosion(blueBase.pos.clone().add(new THREE.Vector3(0,40,0)));
-        e.alive=false;e.mesh.visible=false;if(e.marker)e.marker.style.display='none';
-      } else {
-        e.yaw=Math.atan2(-dx,-dz);
-        const targetVel=new THREE.Vector3(-Math.sin(e.yaw)*e.speed,0,-Math.cos(e.yaw)*e.speed);
-        e.velocity.lerp(targetVel,dt*2); e.pos.add(e.velocity.clone().multiplyScalar(dt));
-        e.mesh.position.copy(e.pos); e.mesh.rotation.y=e.yaw;
-      }
-    }
+    camera = new THREE.PerspectiveCamera(75, window.innerWidth / window.innerHeight, 0.1, 10000);
+    camera.position.set(0, 50, 100);
     
-    if(e.type==='aa' && e!==playerEntity){
-      let target=findNearestEnemy(e.pos,e.team,'drone');
-      if(target){
-        const dx=target.pos.x-e.pos.x,dz=target.pos.z-e.pos.z,dy=target.pos.y-e.pos.y;
-        const dist=Math.sqrt(dx*dx+dz*dz);
-        e.mesh.rotation.y=THREE.MathUtils.lerp(e.mesh.rotation.y,Math.atan2(dx,dz),dt*3);
-        e.barrels.rotation.x=THREE.MathUtils.lerp(e.barrels.rotation.x,-Math.atan2(dy,dist),dt*3);
-        e.cd-=dt;
-        if(e.cd<=0&&dist<2000){
-          e.cd=1.5;
-          const b=new THREE.Mesh(new THREE.SphereGeometry(2,4,4),new THREE.MeshBasicMaterial({color:e.team===TEAM_BLUE?0x00ffff:0xff0000}));
-          b.position.copy(e.pos); b.position.y+=22;
-          const dir=target.pos.clone().add(new THREE.Vector3((Math.random()-0.5)*40,(Math.random()-0.5)*40,(Math.random()-0.5)*40)).sub(b.position).normalize();
-          scene.add(b);
-          projectiles.push({mesh:b,vel:dir.multiplyScalar(500),isBomb:false,life:4,dmg:15,team:e.team});
-        }
-      }
-    }
-  });
-}
-
-function updateProjectiles(dt){
-  for(let i=projectiles.length-1;i>=0;i--){
-    const p=projectiles[i]; p.life-=dt;
-    p.mesh.position.add(p.vel.clone().multiplyScalar(dt));
-    if(p.isBomb)p.vel.y-=98*dt;
+    renderer = new THREE.WebGLRenderer({ antialias: true });
+    renderer.setSize(window.innerWidth, window.innerHeight);
+    renderer.shadowMap.enabled = true;
+    renderer.shadowMap.type = THREE.PCFSoftShadowMap;
+    document.body.appendChild(renderer.domElement);
     
-    let hit=false;
-    entities.forEach(e=>{
-      if(e.alive&&e.team!==p.team){
-        if(p.mesh.position.distanceTo(e.pos)<50){
-          applyDamage(e,p.dmg); hit=true; createExplosion(p.mesh.position);
-        }
-      }
+    // Освещение
+    const ambientLight = new THREE.AmbientLight(0xffffff, 0.6);
+    scene.add(ambientLight);
+    
+    const sunLight = new THREE.DirectionalLight(0xffffff, 1);
+    sunLight.position.set(500, 1000, 500);
+    sunLight.castShadow = true;
+    sunLight.shadow.mapSize.width = 2048;
+    sunLight.shadow.mapSize.height = 2048;
+    sunLight.shadow.camera.near = 0.5;
+    sunLight.shadow.camera.far = 5000;
+    sunLight.shadow.camera.left = -1000;
+    sunLight.shadow.camera.right = 1000;
+    sunLight.shadow.camera.top = 1000;
+    sunLight.shadow.camera.bottom = -1000;
+    scene.add(sunLight);
+    
+    clock = new THREE.Clock();
+    
+    window.addEventListener('resize', () => {
+        camera.aspect = window.innerWidth / window.innerHeight;
+        camera.updateProjectionMatrix();
+        renderer.setSize(window.innerWidth, window.innerHeight);
     });
+}
+
+// Процедурный ландшафт
+function createTerrain() {
+    const size = 10000;
+    const segments = 100;
+    const geometry = new THREE.PlaneGeometry(size, size, segments, segments);
     
-    if(hit||p.life<=0||p.mesh.position.y<groundY(p.mesh.position.x,p.mesh.position.z)){
-      createExplosion(p.mesh.position); scene.remove(p.mesh); projectiles.splice(i,1);
+    // Создаем холмы с помощью синусов
+    const vertices = geometry.attributes.position.array;
+    for (let i = 0; i < vertices.length; i += 3) {
+        const x = vertices[i];
+        const y = vertices[i + 1];
+        vertices[i + 2] = Math.sin(x * 0.01) * 20 + Math.cos(y * 0.01) * 20 + 
+                          Math.sin(x * 0.005 + y * 0.005) * 40;
     }
-  }
+    geometry.computeVertexNormals();
+    
+    // Процедурная текстура
+    const canvas = document.createElement('canvas');
+    canvas.width = 512;
+    canvas.height = 512;
+    const ctx = canvas.getContext('2d');
+    
+    // Рисуем траву/грязь/камни
+    for (let i = 0; i < 10000; i++) {
+        const x = Math.random() * 512;
+        const y = Math.random() * 512;
+        const color = Math.random();
+        if (color < 0.6) ctx.fillStyle = '#2d5016'; // трава
+        else if (color < 0.85) ctx.fillStyle = '#4a3728'; // грязь
+        else ctx.fillStyle = '#6b6b6b'; // камни
+        ctx.fillRect(x, y, 2 + Math.random() * 3, 2 + Math.random() * 3);
+    }
+    
+    const texture = new THREE.CanvasTexture(canvas);
+    texture.wrapS = THREE.RepeatWrapping;
+    texture.wrapT = THREE.RepeatWrapping;
+    texture.repeat.set(50, 50);
+    
+    const material = new THREE.MeshLambertMaterial({ map: texture });
+    terrain = new THREE.Mesh(geometry, material);
+    terrain.rotation.x = -Math.PI / 2;
+    terrain.receiveShadow = true;
+    scene.add(terrain);
 }
 
-function createExplosion(pos){
-  const geo=new THREE.SphereGeometry(25,8,8);
-  const mat=new THREE.MeshBasicMaterial({color:0xff5500,transparent:true,opacity:1});
-  const mesh=new THREE.Mesh(geo,mat); mesh.position.copy(pos); scene.add(mesh);
-  setTimeout(()=>scene.remove(mesh),300);
+// Создание деревьев
+function createTrees() {
+    for (let i = 0; i < 200; i++) {
+        const x = (Math.random() - 0.5) * 8000;
+        const z = (Math.random() - 0.5) * 8000;
+        const y = getTerrainHeight(x, z);
+        
+        const tree = new THREE.Group();
+        
+        // Ствол
+        const trunkGeo = new THREE.CylinderGeometry(0.5, 0.8, 8, 8);
+        const trunkMat = new THREE.MeshLambertMaterial({ color: 0x4a3728 });
+        const trunk = new THREE.Mesh(trunkGeo, trunkMat);
+        trunk.position.y = 4;
+        trunk.castShadow = true;
+        tree.add(trunk);
+        
+        // Листва
+        const leavesGeo = new THREE.SphereGeometry(4, 8, 8);
+        const leavesMat = new THREE.MeshLambertMaterial({ color: 0x2d5016 });
+        const leaves = new THREE.Mesh(leavesGeo, leavesMat);
+        leaves.position.y = 10;
+        leaves.castShadow = true;
+        tree.add(leaves);
+        
+        tree.position.set(x, y, z);
+        scene.add(tree);
+        trees.push(tree);
+    }
 }
 
-function playerDie(){
-  isDead=true; deaths++; respawnTime=5;
-  playerEntity.mesh.visible=false;
-  document.getElementById('respawn-screen').style.display='flex';
-  document.exitPointerLock();
+// Получение высоты ландшафта
+function getTerrainHeight(x, z) {
+    return Math.sin(x * 0.01) * 20 + Math.cos(z * 0.01) * 20 + 
+           Math.sin(x * 0.005 + z * 0.005) * 40;
 }
 
-function respawnPlayer(){
-  isDead=false; document.getElementById('respawn-screen').style.display='none';
-  playerEntity.hp=playerEntity.maxHp; playerEntity.alive=true;
-  if(gameMode==='aa'){ playerEntity.pos.set(-500,groundY(-500,0),0); }
-  else {
-    playerEntity.pos.set(-1500,400,0);
-    playerEntity.velocity.set(0,0,0);
-    playerEntity.pitch=0; playerEntity.roll=0; playerEntity.yaw=0;
-    playerEntity.mesh.visible=viewMode==='tps';
-  }
+// Создание базы
+function createBase(x, z, color) {
+    const base = new THREE.Group();
+    
+    // Основание
+    const baseGeo = new THREE.BoxGeometry(50, 10, 50);
+    const baseMat = new THREE.MeshLambertMaterial({ color: color });
+    const baseMesh = new THREE.Mesh(baseGeo, baseMat);
+    baseMesh.position.y = 5;
+    baseMesh.castShadow = true;
+    baseMesh.receiveShadow = true;
+    base.add(baseMesh);
+    
+    // Башня
+    const towerGeo = new THREE.CylinderGeometry(8, 10, 20, 16);
+    const towerMat = new THREE.MeshLambertMaterial({ color: color });
+    const tower = new THREE.Mesh(towerGeo, towerMat);
+    tower.position.y = 20;
+    tower.castShadow = true;
+    base.add(tower);
+    
+    // Флаг
+    const flagPoleGeo = new THREE.CylinderGeometry(0.2, 0.2, 15, 8);
+    const flagPoleMat = new THREE.MeshLambertMaterial({ color: 0x333333 });
+    const flagPole = new THREE.Mesh(flagPoleGeo, flagPoleMat);
+    flagPole.position.y = 37.5;
+    base.add(flagPole);
+    
+    const flagGeo = new THREE.PlaneGeometry(8, 5);
+    const flagMat = new THREE.MeshLambertMaterial({ color: color, side: THREE.DoubleSide });
+    const flag = new THREE.Mesh(flagGeo, flagMat);
+    flag.position.set(4, 40, 0);
+    base.add(flag);
+    
+    base.position.set(x, getTerrainHeight(x, z), z);
+    base.userData = { hp: 1000, maxHp: 1000, type: 'base', color: color };
+    scene.add(base);
+    
+    return base;
 }
 
-const mctx=document.getElementById('minimap').getContext('2d');
-function updateHUD(){
-  if(!playerEntity)return;
-  const hpPct=Math.max(0,playerEntity.hp/playerEntity.maxHp*100);
-  document.getElementById('hp-fill').style.width=hpPct+'%';
-  document.getElementById('hp-text').innerText=Math.ceil(Math.max(0,playerEntity.hp))+' / '+playerEntity.maxHp+' HP';
-  document.getElementById('base-hp-blue').style.width=Math.max(0,blueBase.hp/blueBase.maxHp*100)+'%';
-  
-  const v=new THREE.Vector3();
-  entities.forEach(e=>{
-    if(!e.marker)return;
-    if(!e.alive||e===playerEntity){e.marker.style.display='none';return;}
-    v.copy(e.pos); v.y+=15; v.project(camera);
-    if(v.z>1||v.z<-1){e.marker.style.display='none';return;}
-    e.marker.style.display='flex';
-    e.marker.style.left=((v.x*0.5+0.5)*innerWidth)+'px';
-    e.marker.style.top=((-v.y*0.5+0.5)*innerHeight)+'px';
-    e.marker.querySelector('.marker-fill').style.width=(e.hp/e.maxHp*100)+'%';
-  });
-  
-  mctx.clearRect(0,0,220,220);
-  mctx.fillStyle='rgba(0,0,0,0.5)'; mctx.beginPath(); mctx.arc(110,110,110,0,7); mctx.fill();
-  const scale=200/SIZE;
-  mctx.fillStyle='#00aaff'; mctx.fillRect(110+blueBase.pos.x*scale-5,110+blueBase.pos.z*scale-5,10,10);
-  entities.forEach(e=>{
-    if(!e.alive||e===playerEntity)return;
-    const mx=110+e.pos.x*scale,my=110+e.pos.z*scale;
-    mctx.fillStyle=e.team===TEAM_BLUE?'#00aaff':'#ff0000';
-    mctx.beginPath();
-    if(e.type==='aa')mctx.rect(mx-3,my-3,6,6); else mctx.arc(mx,my,4,0,7);
-    mctx.fill();
-  });
-  if(playerEntity.alive&&gameMode==='drone'){
-    const px=110+playerEntity.pos.x*scale, py=110+playerEntity.pos.z*scale;
-    mctx.strokeStyle='#fff'; mctx.lineWidth=2;
-    mctx.beginPath(); mctx.moveTo(px,py);
-    mctx.lineTo(px-Math.sin(playerEntity.yaw)*10,py-Math.cos(playerEntity.yaw)*10);
-    mctx.stroke();
-  }
+// Создание ПВО
+function createAA(x, z, color, isPlayer = false) {
+    const aa = new THREE.Group();
+    
+    // База
+    const baseGeo = new THREE.BoxGeometry(8, 3, 8);
+    const baseMat = new THREE.MeshLambertMaterial({ color: color });
+    const baseMesh = new THREE.Mesh(baseGeo, baseMat);
+    baseMesh.position.y = 1.5;
+    baseMesh.castShadow = true;
+    aa.add(baseMesh);
+    
+    // Вращающаяся башня
+    const turret = new THREE.Group();
+    const turretGeo = new THREE.CylinderGeometry(2, 2.5, 2, 16);
+    const turretMat = new THREE.MeshLambertMaterial({ color: color });
+    const turretMesh = new THREE.Mesh(turretGeo, turretMat);
+    turretMesh.position.y = 1;
+    turretMesh.castShadow = true;
+    turret.add(turretMesh);
+    
+    // Радар
+    const radarGeo = new THREE.BoxGeometry(0.5, 3, 0.5);
+    const radarMat = new THREE.MeshLambertMaterial({ color: 0x333333 });
+    const radar = new THREE.Mesh(radarGeo, radarMat);
+    radar.position.set(0, 3.5, 0);
+    radar.castShadow = true;
+    turret.add(radar);
+    
+    // Ствол
+    const barrelGeo = new THREE.CylinderGeometry(0.3, 0.3, 6, 8);
+    const barrelMat = new THREE.MeshLambertMaterial({ color: 0x333333 });
+    const barrel = new THREE.Mesh(barrelGeo, barrelMat);
+    barrel.rotation.x = Math.PI / 2;
+    barrel.position.set(0, 1, 3);
+    barrel.castShadow = true;
+    turret.add(barrel);
+    
+    turret.position.y = 3;
+    aa.add(turret);
+    
+    const y = getTerrainHeight(x, z);
+    aa.position.set(x, y, z);
+    aa.userData = { 
+        type: 'aa', 
+        hp: 200, 
+        maxHp: 200, 
+        turret: turret,
+        barrel: barrel,
+        target: null,
+        fireRate: 0.1,
+        lastFire: 0,
+        heat: 0,
+        ammo: 100,
+        color: color,
+        isPlayer: isPlayer
+    };
+    
+    scene.add(aa);
+    return aa;
 }
 
-init();
-</script>
-</body>
-</html>
+// Создание дрона
+function createDrone(x, y, z, color, type = 'scout') {
+    const drone = new THREE.Group();
+    
+    let bodyColor = 0x888888;
+    let speed = 50;
+    let hp = 50;
+    let bombs = 0;
+    
+    if (type === 'scout') {
+        bodyColor = 0xaaaaaa;
+        speed = 80;
+        hp = 30;
+    } else if (type === 'strike') {
+        bodyColor = 0x666666;
+        speed = 40;
+        hp = 150;
+        bombs = 4;
+    } else if (type === 'fpv') {
+        bodyColor = 0xff4444;
+        speed = 100;
+        hp = 20;
+    }
+    
+    // Корпус
+    const bodyGeo = new THREE.BoxGeometry(2, 0.5, 4);
+    const bodyMat = new THREE.MeshPhongMaterial({ color: bodyColor, shininess: 100 });
+    const body = new THREE.Mesh(bodyGeo, bodyMat);
+    body.castShadow = true;
+    drone.add(body);
+    
+    // Крылья
+    const wingGeo = new THREE.BoxGeometry(6, 0.2, 1);
+    const wingMat = new THREE.MeshPhongMaterial({ color: bodyColor, shininess: 100 });
+    const wings = new THREE.Mesh(wingGeo, wingMat);
+    wings.position.y = 0.1;
+    wings.castShadow = true;
+    drone.add(wings);
+    
+    // Хвост
+    const tailGeo = new THREE.BoxGeometry(2, 0.2, 0.5);
+    const tail = new THREE.Mesh(tailGeo, wingMat);
+    tail.position.set(0, 0.1, -2);
+    tail.castShadow = true;
+    drone.add(tail);
+    
+    // Антенна
+    const antennaGeo = new THREE.CylinderGeometry(0.05, 0.05, 1, 8);
+    const antennaMat = new THREE.MeshLambertMaterial({ color: 0x333333 });
+    const antenna = new THREE.Mesh(antennaGeo, antennaMat);
+    antenna.position.set(0, 0.75, 0);
+    drone.add(antenna);
+    
+    // Бомбы (для ударного дрона)
+    if (bombs > 0) {
+        for (let i = 0; i < bombs; i++) {
+            const bombGeo = new THREE.SphereGeometry(0.3, 8, 8);
+            const bombMat = new THREE.MeshLambertMaterial({ color: 0x333333 });
+            const bomb = new THREE.Mesh(bombGeo, bombMat);
+            bomb.position.set((i % 2) * 2 - 1, -0.5, (Math.floor(i / 2)) * 1.5 - 0.75);
+            drone.add(bomb);
+        }
+    }
+    
+    drone.position.set(x, y, z);
+    drone.userData = {
+        type: 'drone',
+        droneType: type,
+        hp: hp,
+        maxHp: hp,
+        speed: speed,
+        bombs: bombs,
+        color: color,
+        velocity: new THREE.Vector3(0, 0, -speed),
+        targetAltitude: y,
+        roll: 0,
+        pitch: 0
+    };
+    
+    scene.add(drone);
+    return drone;
+}
+
+// Создание взрыва
+function createExplosion(x, y, z, size = 1) {
+    const explosion = new THREE.Group();
+    
+    // Огненный шар
+    const fireGeo = new THREE.SphereGeometry(size * 5, 16, 16);
+    const fireMat = new THREE.MeshBasicMaterial({ 
+        color: 0xff6600, 
+        transparent: true, 
+        opacity: 0.8 
+    });
+    const fire = new THREE.Mesh(fireGeo, fireMat);
+    explosion.add(fire);
+    
+    // Дым
+    const smokeGeo = new THREE.SphereGeometry(size * 8, 16, 16);
+    const smokeMat = new THREE.MeshBasicMaterial({ 
+        color: 0x333333, 
+        transparent: true, 
+        opacity: 0.5 
+    });
+    const smoke = new THREE.Mesh(smokeGeo, smokeMat);
+    explosion.add(smoke);
+    
+    // Искры
+    for (let i = 0; i < 20; i++) {
+        const sparkGeo = new THREE.SphereGeometry(0.2, 4, 4);
+        const sparkMat = new THREE.MeshBasicMaterial({ color: 0xffff00 });
+        const spark = new THREE.Mesh(sparkGeo, sparkMat);
+        spark.position.set(
+            (Math.random() - 0.5) * size * 10,
+            (Math.random() - 0.5) * size * 10,
+            (Math.random() - 0.5) * size * 10
+        );
+        spark.userData.velocity = new THREE.Vector3(
+            (Math.random() - 0.5) * 50,
+            Math.random() * 50,
+            (Math.random() - 0.5) * 50
+        );
+        explosion.add(spark);
+    }
+    
+    explosion.position.set(x, y, z);
+    explosion.userData = { life: 2, maxLife: 2, size: size };
+    scene.add(explosion);
+    explosions.push(explosion);
+    
+    // Тряска камеры
+    cameraShake = Math.max(cameraShake, size * 0.5);
+    
+    return explosion;
+}
+
+// Создание трассера
+function createTracer(start, end, color = 0xffff00) {
+    const material = new THREE.LineBasicMaterial({ color: color });
+    const points = [start, end];
+    const geometry = new THREE.BufferGeometry().setFromPoints(points);
+    const line = new THREE.Line(geometry, material);
+    line.userData = { life: 0.5 };
+    scene.add(line);
+    projectiles.push(line);
+    return line;
+}
+
+// Продолжение в следующей части...
