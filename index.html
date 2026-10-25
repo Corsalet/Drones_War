@@ -613,5 +613,702 @@ function createTracer(start, end, color = 0xffff00) {
     projectiles.push(line);
     return line;
 }
+// Инициализация игры
+function startGame(mode) {
+    gameMode = mode;
+    document.getElementById('mainMenu').style.display = 'none';
+    document.getElementById('hud').style.display = 'block';
+    
+    initThree();
+    createTerrain();
+    createTrees();
+    
+    // Создание баз
+    baseBlue = createBase(-4500, 0, 0x0066ff);
+    baseRed = createBase(4500, 0, 0xff0000);
+    allies.push(baseBlue);
+    enemies.push(baseRed);
+    
+    // Создание игрока в зависимости от режима
+    if (mode === 'training_aa' || mode === 'battle') {
+        playerType = 'aa';
+        player = createAA(-4000, 0, 0x0066ff, true);
+        allies.push(player);
+        document.getElementById('aaCrosshair').style.display = 'block';
+        document.getElementById('heatBar').style.display = 'block';
+        document.getElementById('ammoCount').style.display = 'block';
+    } else if (mode === 'training_drone') {
+        playerType = 'drone';
+        player = createDrone(4000, 100, 0, 0xff0000, 'strike');
+        enemies.push(player);
+        lives = 3;
+        document.getElementById('fpvHUD').style.display = 'block';
+        document.getElementById('lives').style.display = 'block';
+    }
+    
+    // Создание ботов для масштабной битвы
+    if (mode === 'battle') {
+        // Синие ПВО
+        for (let i = 0; i < 5; i++) {
+            const aa = createAA(-4000 + Math.random() * 500, Math.random() * 500 - 250, 0x0066ff);
+            allies.push(aa);
+        }
+        
+        // Красные ПВО
+        for (let i = 0; i < 5; i++) {
+            const aa = createAA(4000 - Math.random() * 500, Math.random() * 500 - 250, 0xff0000);
+            enemies.push(aa);
+        }
+        
+        // Синие дроны
+        for (let i = 0; i < 8; i++) {
+            const drone = createDrone(-3500 + Math.random() * 500, 100 + Math.random() * 100, Math.random() * 1000 - 500, 0x0066ff, 'strike');
+            allies.push(drone);
+        }
+        
+        // Красные дроны
+        for (let i = 0; i < 8; i++) {
+            const drone = createDrone(3500 - Math.random() * 500, 100 + Math.random() * 100, Math.random() * 1000 - 500, 0xff0000, 'strike');
+            enemies.push(drone);
+        }
+    } else if (mode === 'training_aa') {
+        // Для обучения ПВО - несколько красных дронов
+        for (let i = 0; i < 5; i++) {
+            const drone = createDrone(4000 - i * 500, 100, Math.random() * 200 - 100, 0xff0000, 'scout');
+            enemies.push(drone);
+        }
+    } else if (mode === 'training_drone') {
+        // Для обучения дрона - несколько синих ПВО
+        for (let i = 0; i < 3; i++) {
+            const aa = createAA(-3000 + i * 500, 0, 0x0066ff);
+            allies.push(aa);
+        }
+    }
+    
+    gameState = 'playing';
+    setupControls();
+    animate();
+}
 
-// Продолжение в следующей части...
+// Настройка управления
+function setupControls() {
+    document.addEventListener('keydown', (e) => {
+        keys[e.key.toLowerCase()] = true;
+        
+        if (e.key.toLowerCase() === 'c') {
+            // Переключение вида камеры
+            if (camera.position.distanceTo(player.position) > 10) {
+                camera.position.copy(player.position);
+            } else {
+                camera.position.set(
+                    player.position.x,
+                    player.position.y + 10,
+                    player.position.z + 20
+                );
+            }
+        }
+        
+        if (e.key.toLowerCase() === 'b' && gameState === 'playing') {
+            toggleShop();
+        }
+    });
+    
+    document.addEventListener('keyup', (e) => {
+        keys[e.key.toLowerCase()] = false;
+    });
+    
+    document.addEventListener('mousemove', (e) => {
+        if (document.pointerLockElement) {
+            mouse.x += e.movementX * 0.002;
+            mouse.y += e.movementY * 0.002;
+            mouse.y = Math.max(-Math.PI / 2, Math.min(Math.PI / 2, mouse.y));
+        }
+    });
+    
+    document.addEventListener('click', () => {
+        if (gameState === 'playing' && !document.pointerLockElement) {
+            renderer.domElement.requestPointerLock();
+        } else if (gameState === 'playing' && document.pointerLockElement) {
+            // Стрельба или сброс бомбы
+            if (playerType === 'aa') {
+                playerShoot();
+            } else if (playerType === 'drone') {
+                playerDropBomb();
+            }
+        }
+    });
+}
+
+// Стрельба игрока-ПВО
+function playerShoot() {
+    if (player.userData.ammo <= 0 || player.userData.heat >= 100) return;
+    
+    const now = Date.now() / 1000;
+    if (now - player.userData.lastFire < player.userData.fireRate) return;
+    
+    player.userData.lastFire = now;
+    player.userData.ammo--;
+    player.userData.heat = Math.min(100, player.userData.heat + 5);
+    
+    // Направление стрельбы
+    const direction = new THREE.Vector3(0, 0, 1);
+    direction.applyQuaternion(player.userData.turret.quaternion);
+    direction.applyQuaternion(player.quaternion);
+    
+    const startPos = player.userData.turret.localToWorld(new THREE.Vector3(0, 1, 6));
+    const endPos = startPos.clone().add(direction.multiplyScalar(500));
+    
+    createTracer(startPos, endPos, 0xffff00);
+    
+    // Проверка попаданий
+    const raycaster = new THREE.Raycaster(startPos, direction.normalize(), 0, 500);
+    const targets = enemies.filter(e => e.userData.type === 'drone' || e.userData.type === 'aa');
+    
+    targets.forEach(target => {
+        const intersects = raycaster.intersectObject(target, true);
+        if (intersects.length > 0) {
+            const damage = upgrades.aa_gun ? 30 : 20;
+            target.userData.hp -= damage;
+            
+            if (target.userData.hp <= 0) {
+                createExplosion(target.position.x, target.position.y, target.position.z, 2);
+                scene.remove(target);
+                enemies.splice(enemies.indexOf(target), 1);
+                credits += target.userData.type === 'drone' ? 50 : 100;
+            }
+        }
+    });
+}
+
+// Сброс бомбы игроком-дроном
+function playerDropBomb() {
+    if (player.userData.bombs <= 0) return;
+    
+    player.userData.bombs--;
+    
+    const bomb = new THREE.Group();
+    const bombGeo = new THREE.SphereGeometry(0.5, 8, 8);
+    const bombMat = new THREE.MeshLambertMaterial({ color: 0x333333 });
+    const bombMesh = new THREE.Mesh(bombGeo, bombMat);
+    bomb.add(bombMesh);
+    
+    bomb.position.copy(player.position);
+    bomb.userData = {
+        type: 'bomb',
+        velocity: new THREE.Vector3(
+            player.userData.velocity.x * 0.5,
+            -10,
+            player.userData.velocity.z * 0.5
+        ),
+        owner: player.userData.color
+    };
+    
+    scene.add(bomb);
+    projectiles.push(bomb);
+}
+
+// Обновление игрока
+function updatePlayer(delta) {
+    if (playerType === 'aa') {
+        // Управление ПВО
+        player.rotation.y = -mouse.x;
+        
+        const turret = player.userData.turret;
+        turret.rotation.y = -mouse.x * 2;
+        turret.rotation.x = -mouse.y;
+        
+        // Охлаждение
+        player.userData.heat = Math.max(0, player.userData.heat - delta * 10);
+        
+        // Обновление HUD
+        document.getElementById('heatBarFill').style.width = player.userData.heat + '%';
+        document.getElementById('ammoValue').textContent = player.userData.ammo;
+        
+    } else if (playerType === 'drone') {
+        // Управление дроном (механика SKYFIRE)
+        const speed = player.userData.speed;
+        
+        // Наклон носа (pitch)
+        if (keys['w'] || keys['arrowup']) {
+            player.userData.pitch = Math.min(0.5, player.userData.pitch + delta * 2);
+        } else if (keys['s'] || keys['arrowdown']) {
+            player.userData.pitch = Math.max(-0.5, player.userData.pitch - delta * 2);
+        } else {
+            player.userData.pitch *= 0.95;
+        }
+        
+        // Крен (roll)
+        if (keys['a'] || keys['arrowleft']) {
+            player.userData.roll = Math.min(0.8, player.userData.roll + delta * 2);
+        } else if (keys['d'] || keys['arrowright']) {
+            player.userData.roll = Math.max(-0.8, player.userData.roll - delta * 2);
+        } else {
+            player.userData.roll *= 0.95;
+        }
+        
+        // Поворот по рысканью (yaw) от крена
+        const yaw = -player.userData.roll * delta * 2;
+        player.rotation.y += yaw;
+        
+        // Наклон и крен
+        player.rotation.x = player.userData.pitch;
+        player.rotation.z = player.userData.roll;
+        
+        // Движение вперед
+        const forward = new THREE.Vector3(0, 0, -1);
+        forward.applyQuaternion(player.quaternion);
+        player.position.add(forward.multiplyScalar(speed * delta));
+        
+        // Управление высотой
+        if (keys['shift']) {
+            player.position.y += speed * delta * 0.5;
+        } else if (keys['control']) {
+            player.position.y -= speed * delta * 0.5;
+        }
+        
+        // Гравитация
+        if (player.position.y > 10) {
+            player.position.y -= 5 * delta;
+        }
+        
+        // Проверка столкновения с землей
+        const terrainHeight = getTerrainHeight(player.position.x, player.position.z);
+        if (player.position.y < terrainHeight + 2) {
+            createExplosion(player.position.x, player.position.y, player.position.z, 3);
+            lives--;
+            
+            if (lives <= 0) {
+                endGame(false, 'Все дроны уничтожены');
+            } else {
+                // Респавн
+                player.position.set(4000, 100, 0);
+                player.userData.hp = player.userData.maxHp;
+                player.userData.bombs = 4;
+            }
+        }
+        
+        // Обновление HUD FPV
+        document.getElementById('speedIndicator').textContent = Math.round(speed * 3.6) + ' км/ч';
+        document.getElementById('altitudeIndicator').textContent = Math.round(player.position.y) + ' м';
+        document.getElementById('horizonInner').style.transform = 
+            `translateY(${-player.userData.pitch * 100}px) rotate(${-player.userData.roll}rad)`;
+        document.getElementById('livesValue').textContent = lives;
+        
+        // Камера от первого лица
+        camera.position.copy(player.position);
+        camera.rotation.copy(player.rotation);
+    }
+    
+    // Камера от третьего лица
+    if (camera.position.distanceTo(player.position) > 10) {
+        const offset = new THREE.Vector3(0, 10, 20);
+        offset.applyQuaternion(player.quaternion);
+        camera.position.lerp(player.position.clone().add(offset), 0.1);
+        camera.lookAt(player.position);
+    }
+}
+
+// Обновление ИИ дронов
+function updateDroneAI(drone, delta) {
+    if (drone.userData.isPlayer) return;
+    
+    const speed = drone.userData.speed;
+    
+    // Простой ИИ: лететь к вражеской базе
+    const targetBase = drone.userData.color === 0x0066ff ? baseRed : baseBlue;
+    const direction = targetBase.position.clone().sub(drone.position).normalize();
+    
+    // Плавный поворот
+    const targetRotation = Math.atan2(direction.x, direction.z);
+    drone.rotation.y += (targetRotation - drone.rotation.y) * delta * 2;
+    
+    // Движение вперед
+    const forward = new THREE.Vector3(0, 0, -1);
+    forward.applyQuaternion(drone.quaternion);
+    drone.position.add(forward.multiplyScalar(speed * delta));
+    
+    // Поддержание высоты
+    const targetAltitude = 100 + Math.sin(Date.now() * 0.001) * 20;
+    drone.position.y += (targetAltitude - drone.position.y) * delta;
+    
+    // Проверка столкновения с землей
+    const terrainHeight = getTerrainHeight(drone.position.x, drone.position.z);
+    if (drone.position.y < terrainHeight + 2) {
+        createExplosion(drone.position.x, drone.position.y, drone.position.z, 2);
+        scene.remove(drone);
+        const array = drone.userData.color === 0x0066ff ? allies : enemies;
+        array.splice(array.indexOf(drone), 1);
+    }
+}
+
+// Обновление ИИ ПВО
+function updateAAAI(aa, delta) {
+    if (aa.userData.isPlayer) return;
+    
+    // Поиск ближайшего врага
+    const enemyList = aa.userData.color === 0x0066ff ? enemies : allies;
+    let closestEnemy = null;
+    let closestDist = Infinity;
+    
+    enemyList.forEach(enemy => {
+        if (enemy.userData.type === 'drone' || enemy.userData.type === 'aa') {
+            const dist = aa.position.distanceTo(enemy.position);
+            if (dist < closestDist && dist < 500) {
+                closestDist = dist;
+                closestEnemy = enemy;
+            }
+        }
+    });
+    
+    if (closestEnemy) {
+        // Поворот башни к цели
+        const direction = closestEnemy.position.clone().sub(aa.position);
+        const targetRotation = Math.atan2(direction.x, direction.z);
+        aa.userData.turret.rotation.y += (targetRotation - aa.userData.turret.rotation.y) * delta * 3;
+        
+        const pitch = Math.atan2(direction.y, Math.sqrt(direction.x * direction.x + direction.z * direction.z));
+        aa.userData.turret.rotation.x += (pitch - aa.userData.turret.rotation.x) * delta * 3;
+        
+        // Стрельба
+        const now = Date.now() / 1000;
+        if (now - aa.userData.lastFire > aa.userData.fireRate) {
+            aa.userData.lastFire = now;
+            
+            const startPos = aa.userData.turret.localToWorld(new THREE.Vector3(0, 1, 6));
+            const endPos = closestEnemy.position.clone();
+            
+            createTracer(startPos, endPos, aa.userData.color === 0x0066ff ? 0x00ffff : 0xff6600);
+            
+            // Шанс попадания
+            if (Math.random() < 0.3) {
+                const damage = 20;
+                closestEnemy.userData.hp -= damage;
+                
+                if (closestEnemy.userData.hp <= 0) {
+                    createExplosion(closestEnemy.position.x, closestEnemy.position.y, closestEnemy.position.z, 2);
+                    scene.remove(closestEnemy);
+                    enemyList.splice(enemyList.indexOf(closestEnemy), 1);
+                    
+                    if (closestEnemy === player) {
+                        if (playerType === 'drone') {
+                            lives--;
+                            if (lives <= 0) {
+                                endGame(false, 'Дрон уничтожен');
+                            } else {
+                                player.position.set(4000, 100, 0);
+                                player.userData.hp = player.userData.maxHp;
+                            }
+                        }
+                    } else {
+                        credits += closestEnemy.userData.type === 'drone' ? 50 : 100;
+                    }
+                }
+            }
+        }
+    }
+}
+// Обновление снарядов
+function updateProjectiles(delta) {
+    for (let i = projectiles.length - 1; i >= 0; i--) {
+        const proj = projectiles[i];
+        
+        if (proj.userData.type === 'bomb') {
+            // Физика бомбы (парабола)
+            proj.userData.velocity.y -= 20 * delta; // гравитация
+            proj.position.add(proj.userData.velocity.clone().multiplyScalar(delta));
+            
+            // Проверка столкновения с землей
+            const terrainHeight = getTerrainHeight(proj.position.x, proj.position.z);
+            if (proj.position.y < terrainHeight) {
+                createExplosion(proj.position.x, proj.position.y, proj.position.z, 2);
+                
+                // Урон по области
+                const blastRadius = 30;
+                const allTargets = [...allies, ...enemies];
+                allTargets.forEach(target => {
+                    if (target.userData.type === 'aa' || target.userData.type === 'base') {
+                        const dist = proj.position.distanceTo(target.position);
+                        if (dist < blastRadius) {
+                            const damage = 100 * (1 - dist / blastRadius);
+                            target.userData.hp -= damage;
+                            
+                            if (target.userData.hp <= 0 && target.userData.type === 'base') {
+                                createExplosion(target.position.x, target.position.y, target.position.z, 5);
+                                scene.remove(target);
+                                
+                                if (target === baseRed) {
+                                    endGame(true, 'Вражеская база уничтожена!');
+                                } else if (target === baseBlue) {
+                                    endGame(false, 'Ваша база уничтожена!');
+                                }
+                            }
+                        }
+                    }
+                });
+                
+                scene.remove(proj);
+                projectiles.splice(i, 1);
+                continue;
+            }
+            
+            // Проверка столкновения с целями
+            const allTargets = [...allies, ...enemies];
+            allTargets.forEach(target => {
+                if (target.userData.type === 'aa' || target.userData.type === 'base') {
+                    const dist = proj.position.distanceTo(target.position);
+                    if (dist < 10) {
+                        createExplosion(proj.position.x, proj.position.y, proj.position.z, 2);
+                        const damage = 100;
+                        target.userData.hp -= damage;
+                        
+                        if (target.userData.hp <= 0 && target.userData.type === 'base') {
+                            createExplosion(target.position.x, target.position.y, target.position.z, 5);
+                            scene.remove(target);
+                            
+                            if (target === baseRed) {
+                                endGame(true, 'Вражеская база уничтожена!');
+                            } else if (target === baseBlue) {
+                                endGame(false, 'Ваша база уничтожена!');
+                            }
+                        }
+                        
+                        scene.remove(proj);
+                        projectiles.splice(i, 1);
+                    }
+                }
+            });
+        } else if (proj.userData.life !== undefined) {
+            // Трассеры
+            proj.userData.life -= delta;
+            if (proj.userData.life <= 0) {
+                scene.remove(proj);
+                projectiles.splice(i, 1);
+            }
+        }
+    }
+}
+
+// Обновление взрывов
+function updateExplosions(delta) {
+    for (let i = explosions.length - 1; i >= 0; i--) {
+        const exp = explosions[i];
+        exp.userData.life -= delta;
+        
+        const progress = 1 - (exp.userData.life / exp.userData.maxLife);
+        
+        // Анимация огня
+        const fire = exp.children[0];
+        fire.scale.setScalar(1 + progress * 2);
+        fire.material.opacity = 0.8 * (1 - progress);
+        
+        // Анимация дыма
+        const smoke = exp.children[1];
+        smoke.scale.setScalar(1 + progress * 3);
+        smoke.material.opacity = 0.5 * (1 - progress);
+        smoke.position.y += delta * 10;
+        
+        // Анимация искр
+        for (let j = 2; j < exp.children.length; j++) {
+            const spark = exp.children[j];
+            spark.position.add(spark.userData.velocity.clone().multiplyScalar(delta));
+            spark.userData.velocity.y -= 50 * delta;
+            spark.material.opacity = 1 - progress;
+        }
+        
+        if (exp.userData.life <= 0) {
+            scene.remove(exp);
+            explosions.splice(i, 1);
+        }
+    }
+}
+
+// Обновление мини-карты
+function updateMinimap() {
+    const canvas = document.getElementById('minimapCanvas');
+    const ctx = canvas.getContext('2d');
+    
+    ctx.fillStyle = 'rgba(0, 0, 0, 0.7)';
+    ctx.fillRect(0, 0, 200, 200);
+    
+    const scale = 200 / 10000;
+    const offsetX = 100;
+    const offsetY = 100;
+    
+    // Базы
+    ctx.fillStyle = '#0066ff';
+    ctx.fillRect(offsetX + baseBlue.position.x * scale - 3, offsetY + baseBlue.position.z * scale - 3, 6, 6);
+    
+    ctx.fillStyle = '#ff0000';
+    ctx.fillRect(offsetX + baseRed.position.x * scale - 3, offsetY + baseRed.position.z * scale - 3, 6, 6);
+    
+    // Игрок
+    ctx.fillStyle = '#00ff88';
+    ctx.beginPath();
+    ctx.arc(offsetX + player.position.x * scale, offsetY + player.position.z * scale, 4, 0, Math.PI * 2);
+    ctx.fill();
+    
+    // Союзники
+    ctx.fillStyle = '#00ffff';
+    allies.forEach(ally => {
+        if (ally !== player && ally !== baseBlue) {
+            ctx.beginPath();
+            ctx.arc(offsetX + ally.position.x * scale, offsetY + ally.position.z * scale, 2, 0, Math.PI * 2);
+            ctx.fill();
+        }
+    });
+    
+    // Враги
+    ctx.fillStyle = '#ff6600';
+    enemies.forEach(enemy => {
+        if (enemy !== baseRed) {
+            ctx.beginPath();
+            ctx.arc(offsetX + enemy.position.x * scale, offsetY + enemy.position.z * scale, 2, 0, Math.PI * 2);
+            ctx.fill();
+        }
+    });
+}
+
+// Магазин
+function toggleShop() {
+    const shop = document.getElementById('shopMenu');
+    if (shop.style.display === 'none' || shop.style.display === '') {
+        shop.style.display = 'block';
+        if (gameState === 'playing') {
+            gameState = 'paused';
+        }
+    } else {
+        shop.style.display = 'none';
+        if (gameState === 'paused') {
+            gameState = 'playing';
+        }
+    }
+}
+
+function buyUpgrade(type, cost) {
+    if (credits >= cost && !upgrades[type]) {
+        credits -= cost;
+        upgrades[type] = true;
+        document.getElementById('creditsValue').textContent = credits;
+        
+        // Применение улучшений
+        if (type === 'aa_gun' && playerType === 'aa') {
+            player.userData.fireRate = 0.07;
+        } else if (type === 'aa_missile' && playerType === 'aa') {
+            player.userData.fireRate = 0.5;
+        } else if (type === 'drone_scout' && playerType === 'drone') {
+            player.userData.speed = 100;
+        } else if (type === 'drone_strike' && playerType === 'drone') {
+            player.userData.bombs = 4;
+        } else if (type === 'drone_fpv' && playerType === 'drone') {
+            player.userData.speed = 120;
+        }
+        
+        alert('Улучшение куплено!');
+    } else if (upgrades[type]) {
+        alert('Уже куплено!');
+    } else {
+        alert('Недостаточно кредитов!');
+    }
+}
+
+// Завершение игры
+function endGame(victory, message) {
+    gameState = 'gameover';
+    document.getElementById('gameOver').style.display = 'block';
+    document.getElementById('gameOverText').textContent = message;
+    
+    if (victory) {
+        document.getElementById('gameOver').querySelector('h2').textContent = 'ПОБЕДА!';
+        document.getElementById('gameOver').querySelector('h2').style.color = '#00ff88';
+        credits += 500;
+    } else {
+        document.getElementById('gameOver').querySelector('h2').textContent = 'ПОРАЖЕНИЕ';
+        document.getElementById('gameOver').querySelector('h2').style.color = '#ff0000';
+        credits += 100;
+    }
+    
+    document.getElementById('creditsValue').textContent = credits;
+}
+
+// Главный игровой цикл
+function animate() {
+    requestAnimationFrame(animate);
+    
+    if (gameState !== 'playing') {
+        renderer.render(scene, camera);
+        return;
+    }
+    
+    const delta = clock.getDelta();
+    
+    // Обновление таймера
+    gameTime -= delta;
+    if (gameTime <= 0) {
+        // Проверка кто победил по очкам
+        const blueScore = baseBlue.userData.hp;
+        const redScore = baseRed.userData.hp;
+        if (blueScore > redScore) {
+            endGame(true, 'Время вышло! Вы победили по очкам!');
+        } else {
+            endGame(false, 'Время вышло! Вы проиграли по очкам!');
+        }
+    }
+    
+    const minutes = Math.floor(gameTime / 60);
+    const seconds = Math.floor(gameTime % 60);
+    document.getElementById('timer').textContent = 
+        `${minutes}:${seconds.toString().padStart(2, '0')}`;
+    
+    // Обновление HP базы
+    const hpPercent = (baseBlue.userData.hp / baseBlue.userData.maxHp) * 100;
+    document.getElementById('baseHPBar').style.width = hpPercent + '%';
+    
+    // Обновление игрока
+    updatePlayer(delta);
+    
+    // Обновление ИИ
+    allies.forEach(ally => {
+        if (ally.userData.type === 'drone') {
+            updateDroneAI(ally, delta);
+        } else if (ally.userData.type === 'aa') {
+            updateAAAI(ally, delta);
+        }
+    });
+    
+    enemies.forEach(enemy => {
+        if (enemy.userData.type === 'drone') {
+            updateDroneAI(enemy, delta);
+        } else if (enemy.userData.type === 'aa') {
+            updateAAAI(enemy, delta);
+        }
+    });
+    
+    // Обновление снарядов и взрывов
+    updateProjectiles(delta);
+    updateExplosions(delta);
+    
+    // Тряска камеры
+    if (cameraShake > 0) {
+        camera.position.x += (Math.random() - 0.5) * cameraShake;
+        camera.position.y += (Math.random() - 0.5) * cameraShake;
+        cameraShake *= 0.9;
+        if (cameraShake < 0.01) cameraShake = 0;
+    }
+    
+    // Обновление мини-карты
+    updateMinimap();
+    
+    // Обновление кредитов
+    document.getElementById('creditsValue').textContent = credits;
+    
+    // Рендер
+    renderer.render(scene, camera);
+}
+
+// Обработка ошибок
+window.addEventListener('error', (e) => {
+    console.error('Ошибка:', e.message);
+});
+
+// Предотвращение контекстного меню
+document.addEventListener('contextmenu', (e) => e.preventDefault());
